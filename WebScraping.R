@@ -55,7 +55,8 @@ weeklyBoxOffice = page_html %>%
   html_table() %>%
   setNames(myColNames) %>%
   filter(row_number()!=1) %>% 
-  filter(row_number()!=n())
+  filter(row_number()!=n()) %>%
+  mutate(calYear=getYear, calWeek=getWeek)
 
 
 #test errors
@@ -100,7 +101,8 @@ getWeeklyBoxOffice = function(theYear, theWeek) {
         html_table() %>%
         setNames(myColNames) %>%
         filter(row_number()!=1) %>% 
-        filter(row_number()!=n()) 
+        filter(row_number()!=n()) %>%
+        mutate(calYear=theYear, calWeek=theWeek)
       
         return(myWeeklyBoxOffice)
     },
@@ -110,7 +112,11 @@ getWeeklyBoxOffice = function(theYear, theWeek) {
          
         
 
-df = getWeeklyBoxOffice("2018", "31")
+df = getWeeklyBoxOffice(2018, 29)
+
+#can now use rbind to concatenate rows.
+#write a function to get data from start date to now
+
 
 
 
