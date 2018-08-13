@@ -7,9 +7,15 @@
 install.packages("pacman")
 library(pacman)
 
-# install.packages("httr")
-# library(httr)
+install.packages("httr")
+library(httr)
 # 
+
+install.packages("XML")
+library(XML)
+
+install.packages("dplyr")
+library(dplyr)
 
 
 p_load(httr, rvest, XML, dplyr)
@@ -29,8 +35,8 @@ resp_html = content(resp)
 
 
 #using rvest functions
-# install.packages("rvest")
-# library(rvest)
+install.packages("rvest")
+library(rvest)
 
 page_html = read_html(resp)
 
@@ -83,40 +89,93 @@ weeklyBoxOffice = page_html %>%
 
 
 getWeeklyBoxOffice = function(theYear, theWeek) {
-
-  tryCatch(
-    {  
-      base_url = "https://www.boxofficemojo.com/weekly/chart/"
-      query_params = list(yr=theYear, wk=theWeek)
-      
-      myResp = GET(url = base_url, query=query_params)
-      
-      myPage_html = read_html(myResp)
-      
-      myColNames = c("ThisWeek", "LastWeek", "Title", "Studio", "WeeklyGross", "PctChange", "TheatreCount", "TheatreChange", "Average", "TotalGross", "Budget", "WeekNum")
-      
-        myWeeklyBoxOffice = myPage_html %>%
-        html_nodes("table") %>%
-        extract2(5) %>%
-        html_table() %>%
-        setNames(myColNames) %>%
-        filter(row_number()!=1) %>% 
-        filter(row_number()!=n()) %>%
-        mutate(calYear=theYear, calWeek=theWeek)
-      
-        return(myWeeklyBoxOffice)
-    },
-        error=function(e) return(NULL)
-  )
+  
+  #if val < week(now())-2 then error
+  if (theYear <= year(now()) && theWeek <= week(now())-2) {
+  
+    tryCatch(
+      {  
+        base_url = "https://www.boxofficemojo.com/weekly/chart/"
+        query_params = list(yr=theYear, wk=theWeek)
+        
+        myResp = GET(url = base_url, query=query_params)
+        
+        myPage_html = read_html(myResp)
+        
+        myColNames = c("ThisWeek", "LastWeek", "Title", "Studio", "WeeklyGross", "PctChange", "TheatreCount", "TheatreChange", "Average", "TotalGross", "Budget", "WeekNum")
+        
+          myWeeklyBoxOffice = myPage_html %>%
+          html_nodes("table") %>%
+          extract2(5) %>%
+          html_table() %>%
+          setNames(myColNames) %>%
+          filter(row_number()!=1) %>% 
+          filter(row_number()!=n()) %>%
+          mutate(calYear=theYear, calWeek=theWeek)
+        
+          return(myWeeklyBoxOffice)
+      },
+          error=function(e) return(NULL)
+    )
+  }
+  else {
+    return(NULL) 
+  }
 }
          
         
 
-df = getWeeklyBoxOffice(2018, 29)
+df1 = getWeeklyBoxOffice("2018", "31")
+df2 = getWeeklyBoxOffice("2018", "30")
+
+View(df)
 
 #can now use rbind to concatenate rows.
 #write a function to get data from start date to now
 
+install.packages("lubridate")
+library(lubridate)
+
+week(ymd("2014-03-16", "2014-03-17","2014-03-18", '2014-01-01'))
+
+
+startDate = "2018-01-01"
+
+
+
+getWeeklyBoxOfficeByDate = function(startDate) {
+  
+  countWeeks = floor(interval(startDate, now()) / duration(num=1, units="weeks"))
+  
+  weekDates = ymd(startDate) + weeks(x = seq.int(from = 0, to = countWeeks, by = 1))
+  
+  yearWeeks = data.frame(yr=year(weekDates), wk=week(weekDates))
+  
+  mydf = NULL
+  fulldf = NULL
+  for (x in 1:nrow(yearWeeks)) {
+    myYear = yearWeeks[x,1]
+    myWeek = yearWeeks[x,2]
+    
+    mydf = getWeeklyBoxOffice(myYear, myWeek)
+    if(!is.null(mydf)) {
+      if(!is.null(fulldf)) {
+        
+        fulldf = rbind(fulldf, mydf)  
+        
+      } else {
+        
+        fulldf = mydf
+        
+      }
+      
+    }
+  }
+  return(fulldf)  
+
+}
+
+getdf = getWeeklyBoxOfficeByDate("2018-07-19")
 
 
 
