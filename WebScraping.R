@@ -4,21 +4,27 @@
 # Web scrapting of movie sales - from https://www.boxofficemojo.com/weekly/chart/?yr=2018&wk=31&p=.htm
 #-----------------------------------------------------
 
-install.packages("pacman")
-library(pacman)
+# install.packages("pacman")
+# library(pacman)
 
 install.packages("httr")
 library(httr)
-# 
 
-install.packages("XML")
-library(XML)
+install.packages("rvest")
+library(rvest)
 
 install.packages("dplyr")
 library(dplyr)
 
+install.packages("magrittr")
+library(magrittr)
 
-p_load(httr, rvest, XML, dplyr)
+install.packages("lubridate")
+library(lubridate)
+
+
+
+#p_load(httr, rvest, XML, dplyr)
 
 getYear = "2018"
 getWeek = "31"
@@ -69,13 +75,14 @@ weeklyBoxOffice = page_html %>%
 
   tryCatch(
     {
-    page_html %>%
-      html_nodes("table") %>%
-      extract2(5) %>% 
-      html_table() %>%
-      setNames(myColNames) %>%
-      filter(row_number()!=1) %>% 
-      filter(row_number()!=n())
+      page_html %>%
+        html_nodes("table") %>%
+        extract2(5) %>% 
+        html_table() %>%
+        setNames(myColNames) %>%
+        filter(row_number()!=1) %>% 
+        filter(row_number()!=n()) %>%
+        mutate(calYear=getYear, calWeek=getWeek)
     }
     ,
     error=function(e) return(NULL)
@@ -90,7 +97,6 @@ weeklyBoxOffice = page_html %>%
 
 getWeeklyBoxOffice = function(theYear, theWeek) {
   
-  #if val < week(now())-2 then error
   if (theYear <= year(now()) && theWeek <= week(now())-2) {
   
     tryCatch(
