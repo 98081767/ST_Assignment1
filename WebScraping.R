@@ -93,16 +93,14 @@ weeklyBoxOffice = page_html %>%
 #------------------
 # make it a function.
 
-
-
-getWeeklyBoxOffice = function(theYear, theWeek) {
+getWeeklyBoxOffice = function(theYear, theWeek, priceAdj) {
   
   if (theYear <= year(now()) && theWeek <= week(now())-2) {
   
     tryCatch(
       {  
         base_url = "https://www.boxofficemojo.com/weekly/chart/"
-        query_params = list(yr=theYear, wk=theWeek)
+        query_params = list(yr=theYear, wk=theWeek, adjust_yr=priceAdj)
         
         myResp = GET(url = base_url, query=query_params)
         
@@ -131,25 +129,25 @@ getWeeklyBoxOffice = function(theYear, theWeek) {
          
         
 
-df1 = getWeeklyBoxOffice("2018", "31")
-df2 = getWeeklyBoxOffice("2018", "30")
+df1 = getWeeklyBoxOffice("2018", "31", "2018")
+df2 = getWeeklyBoxOffice("2018", "30", "2018")
 
 View(df)
 
+
+#---------------------------------------------------------
 #can now use rbind to concatenate rows.
 #write a function to get data from start date to now
 
 install.packages("lubridate")
 library(lubridate)
 
-week(ymd("2014-03-16", "2014-03-17","2014-03-18", '2014-01-01'))
+# week(ymd("2014-03-16", "2014-03-17","2014-03-18", '2014-01-01'))
+# 
+# startDate = "2018-01-01"
 
 
-startDate = "2018-01-01"
-
-
-
-getWeeklyBoxOfficeByDate = function(startDate) {
+getWeeklyBoxOfficeByDate = function(startDate, priceAdj) {
   
   countWeeks = floor(interval(startDate, now()) / duration(num=1, units="weeks"))
   
@@ -163,7 +161,11 @@ getWeeklyBoxOfficeByDate = function(startDate) {
     myYear = yearWeeks[x,1]
     myWeek = yearWeeks[x,2]
     
-    mydf = getWeeklyBoxOffice(myYear, myWeek)
+    #wait 2 sec before next request to avoid spamming
+    pause(2)
+    
+    mydf = getWeeklyBoxOffice(myYear, myWeek, priceAdj)
+    
     if(!is.null(mydf)) {
       if(!is.null(fulldf)) {
         
@@ -181,7 +183,114 @@ getWeeklyBoxOfficeByDate = function(startDate) {
 
 }
 
-getdf = getWeeklyBoxOfficeByDate("2018-07-19")
+getdf = getWeeklyBoxOfficeByDate("2015-01-01", "2018")
+
+write.csv(getdf, file="WeeklyBoxOfficeResults2015-2018.csv")
+
+#---------------------------------------------------------
+
+#---------------------------------
+# Access OMDB API for movie ratings
+# eg. http://www.omdbapi.com/?t=ex+machina
+# KEY: 
+#Here is your key: f635a606
+#Please append it to all of your API requests,
+#
+#OMDb API: http://www.omdbapi.com/?i=tt3896198&apikey=f635a606
+
+#---------------------------------
+
+apiKey = "f635a606"
+getTitle = "Ghost in the shell" 
+
+
+omdb_url = "http://www.omdbapi.com/"
+omdb_params = list(t=getTitle, apikey=apiKey)
+
+oresp = GET(url = omdb_url, query=omdb_params)
+
+str(oresp)
+
+http_type(oresp)
+#[1] "application/json"
+
+
+# Examine returned text with content()
+content(oresp, as="text")
+
+# Parse response with content()
+content(oresp, as="parsed")
+
+# Parse returned text with fromJSON()
+install.packages("jsonlite")
+library(jsonlite)
+movieList = fromJSON(content(oresp, as="text"))
+
+#fromJSON(content(oresp, as="text"), simplifyDataFrame = TRUE)
+str(movieList$Ratings)
+
+install.packages("rlist")
+library(rlist)
+
+list.select(movieList, Website)
+
+install.packages("tibble")
+library(tibble)
+
+moviedf = enframe(movieList)
+View(moviedf)
+
+install.packages("tidyr")
+library(tidyr)
+
+#pivot the table
+movieResult = moviedf %>%
+    spread(name, value)
+
+View(movieResult)
+
+getMovieRatings = function (gTitle) {
+  
+  tryCatch(
+    {
+      #my API Key
+      apiKey = "f635a606"
+      
+      f_omdb_url = "http://www.omdbapi.com/"
+      f_omdb_params = list(t=gTitle, apikey=apiKey)
+      
+      f_oresp = GET(url = f_omdb_url, query=f_omdb_params) 
+      
+      f_movieList = fromJSON(content(f_oresp, as="text"))
+      
+      f_moviedf = enframe(f_movieList)
+      
+      #pivot the table
+      f_movieResult = f_moviedf %>%
+        spread(name, value)
+      
+      return(f_movieResult)
+      
+    },
+    error=function(e) return(NULL)
+  )  
+    
+}
+
+x = getMovieRatings("Ghost in the Shell")
+
+
+#view titles and sum weekly gross (strip $ and commas)
+moviesbyTitle = getdf %>%
+  group_by(Title, Studio) %>%
+  summarize(calWeeklyGross = sum(as.numeric(gsub("[\\$,]", "", WeeklyGross))),
+            totTheatreCount = sum(as.numeric(gsub("[\\$,]", "", TheatreCount))),
+            totGross = max(as.numeric(gsub("[\\$,]", "", TotalGross))),
+            totBudget = max(as.numeric(gsub("[\\$,]", "", Budget))* 100000),
+            WeeksOn = max(WeekNum)
+            )
+
+write.csv(moviesbyTitle, "MoviesByTitle.csv")
 
 
 
