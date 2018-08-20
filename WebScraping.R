@@ -187,6 +187,21 @@ getdf = getWeeklyBoxOfficeByDate("2015-01-01", "2018")
 
 write.csv(getdf, file="WeeklyBoxOfficeResults2015-2018.csv")
 
+
+#view titles and sum weekly gross (strip $ and commas)
+moviesbyTitle = getdf %>%
+  group_by(Title, Studio) %>%
+  summarize(calWeeklyGross = sum(as.numeric(gsub("[\\$,]", "", WeeklyGross))),
+            totTheatreCount = sum(as.numeric(gsub("[\\$,]", "", TheatreCount))),
+            totGross = max(as.numeric(gsub("[\\$,]", "", TotalGross))),
+            totBudget = max(as.numeric(gsub("[\\$,]", "", Budget))* 100000),
+            WeeksOn = max(WeekNum)
+  )
+
+write.csv(moviesbyTitle, "MoviesByTitle.csv")
+
+
+
 #---------------------------------------------------------
 
 #---------------------------------
@@ -229,6 +244,59 @@ movieList = fromJSON(content(oresp, as="text"))
 #fromJSON(content(oresp, as="text"), simplifyDataFrame = TRUE)
 str(movieList$Ratings)
 
+movieList$Title
+
+rtscore = movieList$Ratings %>%
+  filter(Source == "Rotten Tomatoes") %>%
+  select(Value) %>%
+  mutate_all(funs(as.numeric(gsub("[\\%]", "", .)))) %>%
+  .$Value
+    
+
+
+
+movieDF = NULL
+
+movieDF$Title = movieList$Title
+movieDF$Year = movieList$Year
+movieDF$Rated = movieList$Rated
+movieDF$Released = movieList$Released
+movieDF$Runtime = movieList$Runtime
+movieDF$Genre = movieList$Genre
+movieDF$Director = movieList$Director
+movieDF$Writer = movieList$Writer
+movieDF$Actors = movieList$Actors
+movieDF$Plot = movieList$Plot
+movieDF$Language = movieList$Language
+movieDF$Country = movieList$Country
+movieDF$Awards = movieList$Awards
+movieDF$Poster = movieList$Poster
+if (!is.null(movieList$imdbRating)) {
+  movieDF$IMDBRating = as.numeric(movieList$imdbRating) * 10
+}
+if (!is.null(movieList$Ratings)) {
+  movieDF$RTRating = movieList$Ratings %>%
+    filter(Source == "Rotten Tomatoes") %>%
+    select(Value) %>%
+    mutate_all(funs(as.numeric(gsub("[\\%]", "", .)))) %>%
+    .$Value
+}
+if (!is.null(movieList$Metascore)) {
+  movieDF$Metacritic = as.numeric(movieList$Metascore)
+}
+if (!is.null(movieList$imdbVotes)) {
+  movieDF$IMDBVotes = as.numeric(gsub("[\\$,]", "", movieList$imdbVotes))
+}
+movieDF$IMDBID = movieList$IMDBID
+movieDF$Type = movieList$Type
+movieDF$DVD = movieList$DVD
+movieDF$Production = movieList$Production
+movieDF$Website = movieList$Website
+
+
+movieDF = as.data.frame(movieDF)
+
+
 install.packages("rlist")
 library(rlist)
 
@@ -249,10 +317,13 @@ movieResult = moviedf %>%
 
 View(movieResult)
 
+
+#---------------GET MOVIE RATINGS FUNCTION------------------
+
 getMovieRatings = function (gTitle) {
   
-  tryCatch(
-    {
+#  tryCatch(
+#    {
       #my API Key
       apiKey = "f635a606"
       
@@ -263,34 +334,73 @@ getMovieRatings = function (gTitle) {
       
       f_movieList = fromJSON(content(f_oresp, as="text"))
       
-      f_moviedf = enframe(f_movieList)
+      #create dataframe
+      f_movieDF = NULL
+      
+      f_movieDF$Title = f_movieList$Title
+      f_movieDF$Year = f_movieList$Year
+      f_movieDF$Rated = f_movieList$Rated
+      f_movieDF$Released = f_movieList$Released
+      f_movieDF$Runtime = f_movieList$Runtime
+      f_movieDF$Genre = f_movieList$Genre
+      f_movieDF$Director = f_movieList$Director
+      f_movieDF$Writer = f_movieList$Writer
+      f_movieDF$Actors = f_movieList$Actors
+      f_movieDF$Plot = f_movieList$Plot
+      f_movieDF$Language = f_movieList$Language
+      f_movieDF$Country = f_movieList$Country
+      f_movieDF$Awards = f_movieList$Awards
+      f_movieDF$Poster = f_movieList$Poster
+      if (!is.null(f_movieList$imdbRating)) {
+        f_movieDF$IMDBRating = as.numeric(f_movieList$imdbRating) * 10
+      }
+      if (!is.null(f_movieList$Ratings)) {
+        f_movieDF$RTRating = f_movieList$Ratings %>%
+          filter(Source == "Rotten Tomatoes") %>%
+          select(Value) %>%
+          mutate_all(funs(as.numeric(gsub("[\\%]", "", .)))) %>%
+          .$Value
+      }
+      if (!is.null(f_movieList$Metascore)) {
+        f_movieDF$Metacritic = as.numeric(f_movieList$Metascore)
+      }
+      if (!is.null(f_movieList$imdbVotes)) {
+        f_movieDF$IMDBVotes = as.numeric(gsub("[\\$,]", "", f_movieList$imdbVotes))
+      }
+      f_movieDF$IMDBID = f_movieList$IMDBID
+      f_movieDF$Type = f_movieList$Type
+      f_movieDF$DVD = f_movieList$DVD
+      f_movieDF$Production = f_movieList$Production
+      f_movieDF$Website = f_movieList$Website
+      
+      f_movieDF = as.data.frame(f_movieDF)
+      
+      
+      #f_moviedf = enframe(f_movieList)
       
       #pivot the table
-      f_movieResult = f_moviedf %>%
-        spread(name, value)
+      #f_movieResult = f_moviedf %>%
+      #  spread(name, value)
       
-      return(f_movieResult)
+      return(f_movieDF)
       
-    },
-    error=function(e) return(NULL)
-  )  
+#    },
+#    error=function(e) return(NULL)
+#  )  
     
 }
 
 x = getMovieRatings("Ghost in the Shell")
 
+View(x)
 
-#view titles and sum weekly gross (strip $ and commas)
-moviesbyTitle = getdf %>%
-  group_by(Title, Studio) %>%
-  summarize(calWeeklyGross = sum(as.numeric(gsub("[\\$,]", "", WeeklyGross))),
-            totTheatreCount = sum(as.numeric(gsub("[\\$,]", "", TheatreCount))),
-            totGross = max(as.numeric(gsub("[\\$,]", "", TotalGross))),
-            totBudget = max(as.numeric(gsub("[\\$,]", "", Budget))* 100000),
-            WeeksOn = max(WeekNum)
-            )
 
-write.csv(moviesbyTitle, "MoviesByTitle.csv")
+getMovieRatingsByList = function(vTitles) {
+  
+  
+  
+}
+
 
 
 
