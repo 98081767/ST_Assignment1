@@ -204,10 +204,12 @@ moviesbyTitle = getdf %>%
             totTheatreCount = sum(as.numeric(gsub("[\\$,]", "", TheatreCount))),
             totGross = max(as.numeric(gsub("[\\$,]", "", TotalGross))),
             totBudget = max(as.numeric(gsub("[\\$,]", "", Budget))* 100000),
-            WeeksOn = max(WeekNum)
+            WeeksOn = max(WeekNum),
+            startYear = min(as.numeric(calYear)),
+            startWeek = min(as.numeric(calWeek))
   )
 
-write.csv(moviesbyTitle, "MoviesByTitle.csv")
+write.csv(moviesbyTitle, "MoviesByTitle.csv", row.names = FALSE)
 
 
 
@@ -462,3 +464,16 @@ nrow(movieList)
 movieRatingsDF = getMovieRatingsByList(as.character(m3$Title))
 
 write.csv(movieRatingsDF, "MovieRatings3.csv")
+
+mratings = read.csv("G:/Team Drives/STDS - AT2/MovieRatingsFull.csv")
+
+View(mratings)
+
+msales = read.csv("G:/Team Drives/STDS - AT2/MoviesByTitle.csv")
+
+View(msales)
+
+mcombined = left_join(msales, mratings, by=c("Title"))
+
+write.csv(mcombined, "MovieListCombined.csv")
+
