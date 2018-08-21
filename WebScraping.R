@@ -22,9 +22,18 @@ library(magrittr)
 install.packages("lubridate")
 library(lubridate)
 
+install.packages("jsonlite")
+library(jsonlite)
 
+install.packages("rlist")
+library(rlist)
 
-#p_load(httr, rvest, XML, dplyr)
+install.packages("tibble")
+library(tibble)
+
+install.packages("tidyr")
+library(tidyr)
+
 
 getYear = "2018"
 getWeek = "31"
@@ -162,7 +171,7 @@ getWeeklyBoxOfficeByDate = function(startDate, priceAdj) {
     myWeek = yearWeeks[x,2]
     
     #wait 2 sec before next request to avoid spamming
-    pause(2)
+    Sys.sleep(2)
     
     mydf = getWeeklyBoxOffice(myYear, myWeek, priceAdj)
     
@@ -296,9 +305,17 @@ movieDF$Website = movieList$Website
 
 movieDF = as.data.frame(movieDF)
 
+install.packages("jsonlite")
+library(jsonlite)
 
 install.packages("rlist")
 library(rlist)
+
+install.packages("tibble")
+library(tibble)
+
+install.packages("tidyr")
+library(tidyr)
 
 list.select(movieList, Website)
 
@@ -322,9 +339,10 @@ View(movieResult)
 
 getMovieRatings = function (gTitle) {
   
-#  tryCatch(
-#    {
+  tryCatch(
+    {
       #my API Key
+      #NOTE: 1000 request limit per day
       apiKey = "f635a606"
       
       f_omdb_url = "http://www.omdbapi.com/"
@@ -334,59 +352,68 @@ getMovieRatings = function (gTitle) {
       
       f_movieList = fromJSON(content(f_oresp, as="text"))
       
+      
       #create dataframe
       f_movieDF = NULL
       
-      f_movieDF$Title = f_movieList$Title
-      f_movieDF$Year = f_movieList$Year
-      f_movieDF$Rated = f_movieList$Rated
-      f_movieDF$Released = f_movieList$Released
-      f_movieDF$Runtime = f_movieList$Runtime
-      f_movieDF$Genre = f_movieList$Genre
-      f_movieDF$Director = f_movieList$Director
-      f_movieDF$Writer = f_movieList$Writer
-      f_movieDF$Actors = f_movieList$Actors
-      f_movieDF$Plot = f_movieList$Plot
-      f_movieDF$Language = f_movieList$Language
-      f_movieDF$Country = f_movieList$Country
-      f_movieDF$Awards = f_movieList$Awards
-      f_movieDF$Poster = f_movieList$Poster
-      if (!is.null(f_movieList$imdbRating)) {
-        f_movieDF$IMDBRating = as.numeric(f_movieList$imdbRating) * 10
-      }
-      if (!is.null(f_movieList$Ratings)) {
-        f_movieDF$RTRating = f_movieList$Ratings %>%
-          filter(Source == "Rotten Tomatoes") %>%
-          select(Value) %>%
-          mutate_all(funs(as.numeric(gsub("[\\%]", "", .)))) %>%
-          .$Value
-      }
-      if (!is.null(f_movieList$Metascore)) {
-        f_movieDF$Metacritic = as.numeric(f_movieList$Metascore)
-      }
-      if (!is.null(f_movieList$imdbVotes)) {
-        f_movieDF$IMDBVotes = as.numeric(gsub("[\\$,]", "", f_movieList$imdbVotes))
-      }
-      f_movieDF$IMDBID = f_movieList$IMDBID
-      f_movieDF$Type = f_movieList$Type
-      f_movieDF$DVD = f_movieList$DVD
-      f_movieDF$Production = f_movieList$Production
-      f_movieDF$Website = f_movieList$Website
-      
-      f_movieDF = as.data.frame(f_movieDF)
-      
-      
-      #f_moviedf = enframe(f_movieList)
-      
-      #pivot the table
-      #f_movieResult = f_moviedf %>%
-      #  spread(name, value)
-      
+      if (f_movieList$Response == "True") {
+        
+        f_movieDF$Search = gTitle
+        f_movieDF$Title = f_movieList$Title
+        f_movieDF$Year = f_movieList$Year
+        f_movieDF$Rated = f_movieList$Rated
+        if (!is.null(f_movieList$Released)) {
+          f_movieDF$Released = dmy(f_movieList$Released)
+        }
+        f_movieDF$Runtime = f_movieList$Runtime
+        f_movieDF$Genre = f_movieList$Genre
+        f_movieDF$Director = f_movieList$Director
+        f_movieDF$Writer = f_movieList$Writer
+        f_movieDF$Actors = f_movieList$Actors
+        f_movieDF$Plot = f_movieList$Plot
+        f_movieDF$Language = f_movieList$Language
+        f_movieDF$Country = f_movieList$Country
+        f_movieDF$Awards = f_movieList$Awards
+        f_movieDF$Poster = f_movieList$Poster
+        if (!is.null(f_movieList$imdbRating)) {
+          f_movieDF$IMDBRating = as.numeric(f_movieList$imdbRating) * 10
+        }
+        if (!is.null(f_movieList$Ratings)) {
+          f_movieDF$RTRating = f_movieList$Ratings %>%
+            filter(Source == "Rotten Tomatoes") %>%
+            select(Value) %>%
+            mutate_all(funs(as.numeric(gsub("[\\%]", "", .)))) %>%
+            .$Value
+        }
+        if (!is.null(f_movieList$Metascore)) {
+          f_movieDF$Metacritic = as.numeric(f_movieList$Metascore)
+        }
+        if (!is.null(f_movieList$imdbVotes)) {
+          f_movieDF$IMDBVotes = as.numeric(gsub("[\\$,]", "", f_movieList$imdbVotes))
+        }
+        f_movieDF$IMDBID = f_movieList$IMDBID
+        f_movieDF$Type = f_movieList$Type
+        if (!is.null(f_movieList$DVD)) {
+          f_movieDF$DVD = dmy(f_movieList$DVD)
+        }
+        f_movieDF$Production = f_movieList$Production
+        f_movieDF$Website = f_movieList$Website
+        
+        f_movieDF = as.data.frame(f_movieDF)
+        
+        
+        #f_moviedf = enframe(f_movieList)
+        
+        #pivot the table
+        #f_movieResult = f_moviedf %>%
+        #  spread(name, value)
+        
+      } 
       return(f_movieDF)
       
-#    },
-#    error=function(e) return(NULL)
-#  )  
+    },
+    error=function(e) return(NULL)
+  )  
     
 }
 
@@ -394,13 +421,44 @@ x = getMovieRatings("Ghost in the Shell")
 
 View(x)
 
+myMovieList = c("Ghost in the Shell", "Ex Machina", "Galapagos")
+
+y = getMovieRatingsByList(myMovieList)
 
 getMovieRatingsByList = function(vTitles) {
-  
-  
-  
+    #NOTE: 1000 request limit per day
+    fullDF = NULL
+    movieDF = NULL
+    for (x in 1:length(vTitles)) {
+      
+      #wait 1 sec before next request to avoid spamming
+      Sys.sleep(1)
+      movieDF = getMovieRatings(vTitles[x]) 
+      
+      if(!is.null(movieDF)) {
+        if(!is.null(fullDF)) {
+          fullDF = rbind(fullDF, movieDF)  
+        } else {
+          fullDF = movieDF
+        }
+      }
+      
+    }
+    return(fullDF)
 }
 
+#-------------get titles
+
+movieList = read.csv("MoviesByTitle.csv")
+
+m1 = movieList[1:200,]
+m2 = movieList[201:800,]
+m3 = movieList[801:1600,]
+m4 = movieList[1601:1966,]
+
+nrow(movieList)
 
 
+movieRatingsDF = getMovieRatingsByList(as.character(m3$Title))
 
+write.csv(movieRatingsDF, "MovieRatings3.csv")
