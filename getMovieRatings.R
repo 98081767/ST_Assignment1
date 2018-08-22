@@ -369,11 +369,38 @@ y = getMovieRatingsByList(myMovieList)
 
 movieList = read.csv("MoviesByTitle.csv")
 
+#day 1
 m1 = movieList[1:200,]
-m2 = movieList[201:800,]
-m3 = movieList[801:1200,]
-m4 = movieList[1201:1600,]
-m5 = movieList[1601:1966,]
+movieRatingsDF = getMovieRatingsByList(as.character(m1$Title))
+write.csv(movieRatingsDF, "MovieRatings1.csv")
+m2 = movieList[201:500,]
+movieRatingsDF = getMovieRatingsByList(as.character(m2$Title))
+write.csv(movieRatingsDF, "MovieRatings2.csv")
+m3 = movieList[501:1000,]
+movieRatingsDF = getMovieRatingsByList(as.character(m3$Title))
+write.csv(movieRatingsDF, "MovieRatings3.csv")
+
+#day 2
+m4 = movieList[1001:1010,]
+movieRatingsDF = getMovieRatingsByList(as.character(m4$Title))
+write.csv(movieRatingsDF, "MovieRatings4.csv")
+m5 = movieList[1011:1500,]
+movieRatingsDF = getMovieRatingsByList(as.character(m5$Title))
+write.csv(movieRatingsDF, "MovieRatings5.csv")
+m6 = movieList[1501:2000,]
+movieRatingsDF = getMovieRatingsByList(as.character(m6$Title))
+write.csv(movieRatingsDF, "MovieRatings6.csv")
+
+#day 3
+m7 = movieList[2001:2010,]
+movieRatingsDF = getMovieRatingsByList(as.character(m7$Title))
+write.csv(movieRatingsDF, "MovieRatings7.csv")
+m8 = movieList[2011:2500,]
+movieRatingsDF = getMovieRatingsByList(as.character(m8$Title))
+write.csv(movieRatingsDF, "MovieRatings8.csv")
+m9 = movieList[2501:3500,]
+movieRatingsDF = getMovieRatingsByList(as.character(m9$Title))
+write.csv(movieRatingsDF, "MovieRatings9.csv")
 
 # 
 # nrow(movieList)
