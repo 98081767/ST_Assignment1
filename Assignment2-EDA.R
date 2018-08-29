@@ -25,6 +25,31 @@ library(ggplot2)
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
 
+#STAGE 2 - DATA UNDERSTANDING
+#check distribution of each variable
+#check outliers
+#check missing data - impute
+#preliminary EDA (break out factors)
+
+#STAGE 3 - DAT PREPARATION
+#check missing data - impute
+#inclusion/exclusion report
+#aggregate / merge
+
+
+#STAGE 4 - MODELLING
+#check collinearily of variables
+#check interactions between variables. Transformation to log if required.
+#split train / test
+#run models
+#cross validation
+#prdict 
+#plot prediction vs actual
+#segment data for highest profit and repeat models
+
+
+
+
 
 test = mcombined %>%
   #filter(Title=="12 Strong") %>%
