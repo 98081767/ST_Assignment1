@@ -154,7 +154,7 @@ library(ggplot2)
 
 #---------------GET MOVIE RATINGS FUNCTION------------------
 
-getMovieRatings = function (gTitle) {
+getMovieRatings = function (stype, gTitle) {
   
   #tryCatch(
   #  {
@@ -164,9 +164,13 @@ getMovieRatings = function (gTitle) {
   #apiKey = "5b07fbf5" #Archel.J.Aguilar@gmail.com
   
   f_omdb_url = "http://www.omdbapi.com/"
-  f_omdb_params = list(t=gTitle, apikey=apiKey)
-  
-  print(gTitle)
+  if (stype == "id") {
+    f_omdb_params = list(i=gTitle, apikey=apiKey)
+    print(gTitle)
+  } else {
+    f_omdb_params = list(t=gTitle, apikey=apiKey)
+    print(gTitle)
+  }
   
   #create dataframe
   f_movieDF = NULL
@@ -335,7 +339,7 @@ getMovieRatings = function (gTitle) {
   #)  
   
 }
-#-------------------------------------------------------------------
+#------------------------------------------------------------------
 
 #---------------GET MOVIE RATINGS BY LIST  FUNCTION------------------
 getMovieRatingsByList = function(vTitles) {
@@ -346,7 +350,7 @@ getMovieRatingsByList = function(vTitles) {
     
     #wait 1 sec before next request to avoid spamming
     Sys.sleep(1)
-    movieDF = getMovieRatings(vTitles[x]) 
+    movieDF = getMovieRatings("title", vTitles[x]) 
     
     if(!is.null(movieDF)) {
       if(!is.null(fullDF)) {
@@ -360,6 +364,62 @@ getMovieRatingsByList = function(vTitles) {
   return(fullDF)
 }
 #-------------------------------------------------------------------
+
+
+
+#---------------UPDATE MOVIE RATINGS FUNCTION------------------
+updateMovieRatingsByList = function(dfMovies, rIds) {
+  #NOTE: 1000 request limit per day
+
+  for (x in rIds) {
+    movieDF = NULL
+    print(x)
+    
+    
+    if(!is.null(dfMovies)) {
+        #wait 1 sec before next request to avoid spamming
+        Sys.sleep(1)
+      
+        print(paste(dfMovies[x,]$Title,dfMovies[x,]$imdbID, sep="-"))
+        
+        movieDF = getMovieRatings("id", dfMovies[x,]$imdbID) 
+        
+        if(!is.null(movieDF)) {
+          print(paste("Prod:", as.character(movieDF$Production)))
+          
+          #update record
+          dfMovies[x,]$Year = as.character(movieDF$Year)
+          dfMovies[x,]$Rated = as.character(movieDF$Rated)
+          dfMovies[x,]$Released = as.character(movieDF$Released)
+          dfMovies[x,]$Runtime = as.character(movieDF$Runtime)
+          dfMovies[x,]$Genre = as.character(movieDF$Genre)
+          dfMovies[x,]$Director = as.character(movieDF$Director)
+          dfMovies[x,]$Writer = as.character(movieDF$Writer)
+          dfMovies[x,]$Actors = as.character(movieDF$Actors)
+          dfMovies[x,]$Plot = as.character(movieDF$Plot)
+          dfMovies[x,]$Language = as.character(movieDF$Language)
+          dfMovies[x,]$Country = as.character(movieDF$Country)
+          dfMovies[x,]$Awards = as.character(movieDF$Awards)
+          dfMovies[x,]$Poster = as.character(movieDF$Poster)
+          dfMovies[x,]$Released = as.character(movieDF$Released)
+          dfMovies[x,]$IMDBRating = as.integer(movieDF$IMDBRating)
+          dfMovies[x,]$RTRating = as.integer(movieDF$RTRating)
+          dfMovies[x,]$Metacritic = as.integer(movieDF$Metacritic)
+          dfMovies[x,]$IMDBVotes = as.integer(movieDF$IMDBVotes)
+          dfMovies[x,]$Type = as.character(movieDF$Type)
+          dfMovies[x,]$DVD = as.character(movieDF$DVD)
+          dfMovies[x,]$Production = as.character(movieDF$Production)
+          dfMovies[x,]$Website = as.character(movieDF$Website)
+        }
+    }
+    
+  }
+  
+  return(dfMovies)
+}
+#-------------------------------------------------------------------
+
+
 
 # x = getMovieRatings("Li'l Quinquin")
 # 
@@ -421,8 +481,6 @@ y = getMovieRatingsByList(myMovieList)
 # movieRatingsDF = getMovieRatingsByList(as.character(m4$Title))
 # write.csv(movieRatingsDF, "MovieRatings4.csv")
 
-
-
 #mratings = read.csv("G:/Team Drives/STDS - AT2/MovieRatingsFull.csv")
 
 mratings = read.csv("MovieRatingsFull.csv", stringsAsFactors =FALSE)
@@ -436,6 +494,96 @@ msales = read.csv("MoviesByTitle.csv", stringsAsFactors =FALSE)
 mcombined = left_join(msales, mratings, by=c("Title"))
 
 write.csv(mcombined, "MovieListCombined.csv")
+
+#-----------------------------------------------------
+# GET TMDB data
+#----------------------------------------------------
+install.packages("TMDb")
+library(TMDb)
+
+mytoken = "b64d8b75244a0edfd7217267d2a65734"
+
+getIMDBID = function (mydf, myapikey) {
+  
+  for (x in 1:nrow(mydf)) {
+    myTitle = mydf[x,]$Title
+    myYear = mydf[x,]$startYear
+    print(paste(myTitle, myYear, sep="-"))
+    
+    
+    myCont = search_movie(api_key=myapikey, myTitle, primary_release_year=myYear) 
+    
+    if (myCont$total_results == 1) {
+      
+      myMovieDetails = movie(api_key=myapikey, id=myCont$results$id)
+      myIMDBID = myMovieDetails$imdb_id
+      
+      mydf[x, ]$imdbID = myIMDBID
+      
+    } else {
+      print(paste("total results:", myCont$total_results, sep=" "))
+    }
+  }
+  
+  return(mydf)
+}
+
+
+
+# tmdbCont = search_movie(api_key = mytoken, "13 Hours: The Secret Soldiers of Benghazi", primary_release_year="2016")
+# str(tmdbCont$results)
+
+tmdbResults =  movie(api_key=mytoken, id="0001")
+
+tmdbResults$imdb_id
+
+
+mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
+
+missingMovies = mcombined %>%
+  filter(is.na(X)) %>%
+  mutate(startYear = as.character(startYear)) %>%
+  select(X.1, Title, startYear, imdbID) 
+
+str(missingMovies)
+
+
+missingIMDB = getIMDBID(missingMovies, mytoken)
+
+
+
+#--------------------------------------------------
+#update IMDB for missing movies
+mcombined[missingIMDB$X.1, ]$imdbID = missingIMDB$imdbID
+
+missingIMDB %>%
+  filter(!is.na(imdbID)) %>% View
+
+write.csv(mcombined, "MovieListCombined.csv")
+#--------------------------------------------------
+
+
+#get list of movies that need to be updated
+vIds = mcombined %>%
+  filter(is.na(X) & !is.na(imdbID) & imdbID!="") %>%
+  mutate(imdbID = as.character(imdbID)) %>%
+  select(X.1, Title, startYear, imdbID) 
+
+
+myIds = as.character(vIds$X.1)
+#myIds = c("12", "18")
+
+
+newcombined = updateMovieRatingsByList(mcombined, myIds)
+
+newcombined %>%
+  filter(is.na(X)) %>% View
+
+write.csv(newcombined, "MovieListCombined.csv")
+
+#-----------------------------------------------------
+# EDA
+#----------------------------------------------------
 
 
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
