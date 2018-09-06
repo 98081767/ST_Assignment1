@@ -529,12 +529,55 @@ getIMDBID = function (mydf, myapikey) {
 }
 
 
+#-----------------------------------------------------
+# GET TMDB ID
+#----------------------------------------------------
+getTMDBID = function (mydf, myapikey) {
+  
+  for (x in 1:nrow(mydf)) {
+    myTitle = mydf[x,]$imdbID
+    print(myTitle)
+    
+    if(!is.na(myTitle) && myTitle!="") {
+    
+      myCont = find_tmdb(mytoken, myTitle, external_source = "imdb_id")
+      
+      
+      if (!is.null(myCont$movie_results$id)) {
+        
+        mydf[x, ]$TMDBID = myCont$movie_results$id
+        
+      } else {
+        print("could not find")
+      }
+    } else {
+      print("could not find")
+    }  
+      
+  }
+  
+  return(mydf)
+}
 
-# tmdbCont = search_movie(api_key = mytoken, "13 Hours: The Secret Soldiers of Benghazi", primary_release_year="2016")
+
+
+
+y = find_tmdb(mytoken, "", external_source = "imdb_id")
+str(y$movie_results$id)
+
+
+#----------------------------------------------------
+
+
+#------------GET IMDB ID
+#tmdbCont = search_movie(api_key = mytoken, "Ex Machina", primary_release_year="2015")
 # str(tmdbCont$results)
 
-tmdbResults =  movie(api_key=mytoken, id="0001")
+#264660 - Ex Machina
+#299536 - Avengers infinity war
+#177572 - Big Hero 6
 
+tmdbResults =  movie(api_key=mytoken, id="0001")
 tmdbResults$imdb_id
 
 
@@ -549,6 +592,23 @@ str(missingMovies)
 
 
 missingIMDB = getIMDBID(missingMovies, mytoken)
+
+
+#------------GET TMDB ID
+
+mcombined = mcombined %>%
+  mutate(TMDBID = NA,
+         startYear = as.character(startYear))
+
+View(mcombined)
+
+
+newcombined = getTMDBID(mcombined, mytoken)
+write.csv(newcombined, "MovieListCombined.csv")
+
+
+newcombined %>%
+  filter(is.na(TMDBID)) %>% View
 
 
 
@@ -581,75 +641,3 @@ newcombined %>%
 
 write.csv(newcombined, "MovieListCombined.csv")
 
-#-----------------------------------------------------
-# EDA
-#----------------------------------------------------
-
-
-mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
-
-
-
-test = mcombined %>%
-  #filter(Title=="12 Strong") %>%
-  mutate(totBudget = trimws(totBudget)) %>%
-  replace_with_na(replace = list(totBudget=c("NA"))) %>%
-  filter(!is.na(totBudget)) #%>% View
-
-options(digits=10)
-test$totBudget = as.numeric(test$totBudget)
-
-ggplot(test, aes(x=totBudget, y=totGross)) +
-  geom_jitter(alpha=0.3)
-
-ggplot(test, aes(x=cut(totBudget, breaks=11), y=totGross)) +
-  geom_jitter(alpha=0.3) 
-
-ggplot(test, aes(x=cut(totBudget, breaks=15), y=totGross)) +
-  geom_boxplot() 
-
-#abline shows that majority of movies make more than budget
-
-ggplot(test, aes(x=totBudget, y=totGross)) +
-  geom_jitter(alpha=0.3) +
-  scale_x_log10() +
-  scale_y_log10()+
-  geom_abline(intercept = 0, colour="red") +
-  geom_smooth(method="lm")
-
-ggplot(test, aes(x=cut(log(totBudget), breaks=11), y=log(totGross))) +
-  geom_jitter(alpha=0.3) 
-
-ggplot(test, aes(x=cut(log(totBudget), breaks=15), y=log(totGross))) +
-  geom_boxplot()
-  
-
-
-cor(log(test$totBudget), log(test$totGross))
-
-
-movie.mod = lm(totGross ~ totBudget, data=test)
-
-summary(movie.mod)
-
-
-movie.mod = lm(totGross ~ totBudget, data=test)
-
-summary(movie.mod)
-
-
-
-#mutate(totBudget = formatC(as.numeric(totBudget), digits=10, format="d")) %>% 
-
-summary(mcombined)
-
-test %>% 
-  filter(!is.na(totBudget)) %>% 
-  mutate(totProfit = totGross - totBudget) %>%
-  group_by(startYear) %>%
-  summarise(avgBudget=mean(totBudget), 
-            avgGross = mean(totGross),
-            avgProfit = mean(totProfit),
-            sumBudget = sum(totBudget),
-            sumGross = sum(totGross)
-            ) %>% View
