@@ -24,6 +24,99 @@ library(ggplot2)
 
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
+#-----------------------------------------------------------------------------
+#STAGE 1 - DATA CLEANSING
+#-----------------------------------------------------------------------------
+
+View(mcombined)
+
+install.packages("naniar")
+library(naniar)
+
+na_strings <- c("NA", "N A", "N / A", "N/A", "N/ A", "Not Available", "NOt available")
+
+
+cdata = mcombined %>%
+  replace_with_na_all(condition = ~.x %in% na_strings) %>%
+  #split Genre to different columns
+  mutate(Genre = strsplit(as.character(Genre), ",")) %>% 
+  unnest(Genre) %>% 
+  mutate(GenreTrue = 1,
+         Genre = paste("G", Genre, sep="_")) %>% 
+  arrange(Genre) %>% 
+  spread(Genre, GenreTrue) %>%
+  mutate(Awards = !is.na(Awards)) %>% 
+  arrange(X.1) %>% 
+  select(X.1, 
+         Title, 
+         Studio, 
+         totTheatreCount, 
+         totGross, 
+         totBudget, 
+         WeeksOn, 
+         startYear, 
+         startWeek,
+         Rated,
+         Awards,
+         Language,
+         IMDBRating,
+         RTRating,
+         Metacritic,
+         Production,
+         Country,
+         starts_with("G_"),
+         -G_NA
+  )
+
+write.csv(cdata, "MovieClean.csv")
+
+
+cdata2 = cdata %>%
+  #split Language to different columns
+  #mutate(LanguageX = 
+  #          strsplit(gsub(" ", "", as.character(Language)), ",")  
+  #        
+  #    ) %>% 
+  #unnest(Language) %>% 
+  select(X.1, Language) %>%
+  mutate(Language = gsub(" ", "", as.character(Language))) %>%
+  separate(Language, c("L1", "L2", "L3", "L4"), sep=",") %>% 
+  gather(LKey, LTerm, -X.1) %>% 
+  mutate(
+     LTerm = paste("L", LTerm, sep="_"),
+     LanguageTrue = 1
+         ) %>% 
+  #group_by(X.1) %>% 
+  # mutate(row_id =1:n()) %>%
+  # ungroup() %>%
+  spread(LTerm, LanguageTrue) %>% 
+  arrange(X.1) %>% View
+  
+
+write.csv(cdata2, "MovieClean.csv")
+  
+  
+  #split Country to different columns
+  mutate(Country = strsplit(as.character(Country), ",")) %>% 
+  unnest(Country) %>% 
+  mutate(CountryTrue = 1,
+         Country = paste("C", Country, sep="_")) %>% 
+  arrange(Country) %>% 
+  spread(Country, CountryTrue) %>% 
+  arrange(X.1) %>% View
+
+
+  
+
+write.csv(cdata, "MovieClean.csv")
+
+
+val = c("a, b, c,a")
+strsplit(val,",")
+
+
+
+
 
 #STAGE 2 - DATA UNDERSTANDING
 #check distribution of each variable
