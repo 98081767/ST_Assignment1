@@ -21,6 +21,11 @@ library(tidyr)
 install.packages("ggplot2")
 library(ggplot2)
 
+install.packages("naniar")
+library(naniar)
+
+install.packages("purrr")
+library(purrr)
 
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
@@ -30,8 +35,7 @@ mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
 View(mcombined)
 
-install.packages("naniar")
-library(naniar)
+
 
 na_strings <- c("NA", "N A", "N / A", "N/A", "N/ A", "Not Available", "NOt available")
 
@@ -71,48 +75,57 @@ cdata = mcombined %>%
 write.csv(cdata, "MovieClean.csv")
 
 
+# cdata2 = cdata %>%
+#   #split Language to different columns
+#   #mutate(LanguageX = 
+#   #          strsplit(gsub(" ", "", as.character(Language)), ",")  
+#   #        
+#   #    ) %>% 
+#   #unnest(Language) %>% 
+#   select(X.1, Language) %>%
+#   mutate(Language = gsub(" ", "", as.character(Language))) %>%
+#   separate(Language, c("L1", "L2", "L3", "L4"), sep=",") %>% 
+#   gather(LKey, LTerm, -X.1) %>% 
+#   mutate(
+#      LTerm = paste("L", LTerm, sep="_"),
+#      LanguageTrue = 1
+#          ) %>% 
+#   #group_by(X.1) %>% 
+#   # mutate(row_id =1:n()) %>%
+#   # ungroup() %>%
+#   spread(LTerm, LanguageTrue) %>% 
+#   arrange(X.1) %>% View
+
+
 cdata2 = cdata %>%
   #split Language to different columns
-  #mutate(LanguageX = 
-  #          strsplit(gsub(" ", "", as.character(Language)), ",")  
-  #        
-  #    ) %>% 
-  #unnest(Language) %>% 
-  select(X.1, Language) %>%
-  mutate(Language = gsub(" ", "", as.character(Language))) %>%
-  separate(Language, c("L1", "L2", "L3", "L4"), sep=",") %>% 
-  gather(LKey, LTerm, -X.1) %>% 
+  mutate(Language = 
+            strsplit(gsub(" ", "", as.character(Language)), ",")
+      ) %>% 
+  mutate(Language = lapply(Language, FUN=unique)) %>%
+  unnest(Language) %>% 
   mutate(
-     LTerm = paste("L", LTerm, sep="_"),
-     LanguageTrue = 1
-         ) %>% 
-  #group_by(X.1) %>% 
-  # mutate(row_id =1:n()) %>%
-  # ungroup() %>%
-  spread(LTerm, LanguageTrue) %>% 
-  arrange(X.1) %>% View
-  
+    Language = paste("L", Language, sep="_"),
+    LanguageTrue = 1
+  ) %>% 
+  arrange(Language) %>% 
+  spread(Language, LanguageTrue) %>% 
+  arrange(X.1) 
+
 
 write.csv(cdata2, "MovieClean.csv")
   
   
   #split Country to different columns
-  mutate(Country = strsplit(as.character(Country), ",")) %>% 
-  unnest(Country) %>% 
-  mutate(CountryTrue = 1,
-         Country = paste("C", Country, sep="_")) %>% 
-  arrange(Country) %>% 
-  spread(Country, CountryTrue) %>% 
-  arrange(X.1) %>% View
+  # mutate(Country = strsplit(as.character(Country), ",")) %>% 
+  # unnest(Country) %>% 
+  # mutate(CountryTrue = 1,
+  #        Country = paste("C", Country, sep="_")) %>% 
+  # arrange(Country) %>% 
+  # spread(Country, CountryTrue) %>% 
+  # arrange(X.1) %>% View
 
-
-  
-
-write.csv(cdata, "MovieClean.csv")
-
-
-val = c("a, b, c,a")
-strsplit(val,",")
+mclean = read.csv("MovieClean.csv")
 
 
 
