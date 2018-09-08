@@ -27,6 +27,10 @@ library(naniar)
 install.packages("purrr")
 library(purrr)
 
+install.packages("Amelia")
+library(Amelia)
+
+
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
 #-----------------------------------------------------------------------------
@@ -39,8 +43,9 @@ View(mcombined)
 
 na_strings <- c("NA", "N A", "N / A", "N/A", "N/ A", "Not Available", "NOt available")
 
-
-cdata = mcombined %>%
+#----------------------Initial cleaning of data
+cdata = mcombined %>% 
+  mutate(totBudget = trimws(totBudget)) %>% 
   replace_with_na_all(condition = ~.x %in% na_strings) %>%
   #split Genre to different columns
   mutate(Genre = strsplit(as.character(Genre), ",")) %>% 
@@ -49,17 +54,26 @@ cdata = mcombined %>%
          Genre = paste("G", Genre, sep="_")) %>% 
   arrange(Genre) %>% 
   spread(Genre, GenreTrue) %>%
-  mutate(Awards = !is.na(Awards)) %>% 
+  mutate(Awards = !is.na(Awards),
+         Runtime = as.integer(gsub(" min", "", as.character(Runtime))),
+         TMDBbudget = replace(TMDBbudget, TMDBbudget<=1200, NA), #clean incorrect data
+         totBudget = replace(totBudget, is.na(totBudget), TMDBbudget[is.na(totBudget)]),
+         WeeksOn = replace(WeeksOn, WeeksOn == "-", 1) #dash means week 1
+         ) %>% 
   arrange(X.1) %>% 
   select(X.1, 
+         imdbID,
+         TMDBID,
          Title, 
          Studio, 
          totTheatreCount, 
          totGross, 
          totBudget, 
+         #TMDBbudget,
          WeeksOn, 
          startYear, 
          startWeek,
+         Runtime,
          Rated,
          Awards,
          Language,
@@ -70,33 +84,11 @@ cdata = mcombined %>%
          Country,
          starts_with("G_"),
          -G_NA
-  )
+  ) #%>% View
 
-write.csv(cdata, "MovieClean.csv")
+write.csv(cdata, "MovieClean1.csv")
 
-
-# cdata2 = cdata %>%
-#   #split Language to different columns
-#   #mutate(LanguageX = 
-#   #          strsplit(gsub(" ", "", as.character(Language)), ",")  
-#   #        
-#   #    ) %>% 
-#   #unnest(Language) %>% 
-#   select(X.1, Language) %>%
-#   mutate(Language = gsub(" ", "", as.character(Language))) %>%
-#   separate(Language, c("L1", "L2", "L3", "L4"), sep=",") %>% 
-#   gather(LKey, LTerm, -X.1) %>% 
-#   mutate(
-#      LTerm = paste("L", LTerm, sep="_"),
-#      LanguageTrue = 1
-#          ) %>% 
-#   #group_by(X.1) %>% 
-#   # mutate(row_id =1:n()) %>%
-#   # ungroup() %>%
-#   spread(LTerm, LanguageTrue) %>% 
-#   arrange(X.1) %>% View
-
-
+#----------------------Split Language into columns
 cdata2 = cdata %>%
   #split Language to different columns
   mutate(Language = 
@@ -113,7 +105,7 @@ cdata2 = cdata %>%
   arrange(X.1) 
 
 
-write.csv(cdata2, "MovieClean.csv")
+write.csv(cdata2, "MovieClean2.csv")
   
   
   #split Country to different columns
@@ -125,14 +117,130 @@ write.csv(cdata2, "MovieClean.csv")
   # spread(Country, CountryTrue) %>% 
   # arrange(X.1) %>% View
 
-mclean = read.csv("MovieClean.csv")
+mclean = read.csv("MovieClean2.csv", stringsAsFactors = FALSE)
 
 
+#missingness maps
+missmap(mclean)
 
+mclean %>% 
+  select(X.1, 
+         Title, 
+         Studio, 
+         totTheatreCount, 
+         totGross, 
+         totBudget, 
+         WeeksOn, 
+         startYear, 
+         startWeek,
+         Runtime,
+         Rated,
+         Awards,
+         #Language,
+         IMDBRating,
+         RTRating,
+         Metacritic,
+         Production
+         #Country
+         #starts_with("G_"),
+         #starts_with("L_"),
+  ) %>%
+    missmap()
 
+str(mclean)
+
+#---------------------Convert features to correct type
+mclean = mclean %>%
+  mutate(
+    Studio = as.factor(Studio),
+    Rated = as.factor(Rated),
+    Production = as.factor(Production)
+  )
 
 #STAGE 2 - DATA UNDERSTANDING
 #check distribution of each variable
+
+#------Movies by Year
+mclean %>% 
+  group_by(startYear) %>%
+  summarise(total=n(),
+            avgWeeksOn=mean(WeeksOn),
+            medWeeksOn=median(WeeksOn),
+            avgRunTime=mean(Runtime, na.rm = TRUE),
+            medRunTime=median(Runtime, na.rm = TRUE),
+            avgIMDBRating=mean(IMDBRating, na.rm = TRUE),
+            medIMDBRating=median(IMDBRating, na.rm = TRUE)
+            ) %>%
+  filter(startYear %in% c(2015:2017))
+
+#     startYear total avgWeeksOn medWeeksOn avgRunTime medRunTime avgIMDBRating medIMDBRating
+#         <int> <int>      <dbl>      <dbl>      <dbl>      <dbl>         <dbl>         <dbl>
+#   1      2015   673       6.37          7       105.        102          64.9            66
+#   2      2016   720       6.27          7       103.        101          65.1            66
+#   3      2017   705       6.4           7       104.        101          65.6            66
+
+
+
+#-------Weeks On by Year
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(WeeksOn >= 0) %>% 
+  group_by(startYear) %>%
+  summarise(avgWeeksOn=mean(WeeksOn),
+            medWeeksOn=median(WeeksOn),
+            minWeeksOn=min(WeeksOn),
+            maxWeeksOn=max(WeeksOn)
+            )
+#       startYear avgWeeksOn medWeeksOn minWeeksOn maxWeeksOn
+#         <int>      <dbl>      <dbl>      <dbl>      <dbl>
+#   1      2015       6.37          7          1        113
+#   2      2016       6.27          7          1         99
+#   3      2017       6.48          7          1         59
+#Notes: The average number of weeks in cinema is 6 weeks. This is fairly consistent for all years. 
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(WeeksOn >= 0) %>% 
+  ggplot(aes(y=WeeksOn, x=as.factor(startYear))) +
+    geom_boxplot()
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(WeeksOn >= 0) %>% 
+  ggplot(aes(x=WeeksOn)) +
+  geom_histogram(binwidth = 3) +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(WeeksOn >= 0) %>% 
+  ggplot(aes(x=WeeksOn, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+#investigate outliers
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(WeeksOn >= 25) 
+#Studios 
+#- IMAX - specialised cinema for large film format.
+#- KL (Kino Lorber) are specalised cinemas for documentaries and specialize in art house, low budget
+
+
+
+#------Studio
+mclean %>%
+  group_by(Studio) %>%
+  summarise(total=n()) %>%
+  arrange(desc(total))
+
+
+
+
+
+
 #check outliers
 #check missing data - impute
 #preliminary EDA (break out factors)

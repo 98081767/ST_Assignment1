@@ -215,7 +215,7 @@ moviesbyTitle = getdf %>%
   summarize(calWeeklyGross = sum(as.numeric(gsub("[\\$,]", "", WeeklyGross))),
             totTheatreCount = sum(as.numeric(gsub("[\\$,]", "", TheatreCount))),
             totGross = max(as.numeric(gsub("[\\$,]", "", TotalGross))),
-            totBudget = formatC(max(as.numeric(gsub("[\\$,]", "", Budget))* 100000), digits = 10, format="d"),
+            totBudget = formatC(max(as.numeric(gsub("[\\$,]", "", Budget))* 1000000), digits = 10, format="d"),
             WeeksOn = max(WeekNum),
             startYear = min(as.numeric(calYear))
   ) %>%

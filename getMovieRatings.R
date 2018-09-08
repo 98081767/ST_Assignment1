@@ -560,10 +560,56 @@ getTMDBID = function (mydf, myapikey) {
 }
 
 
-
-
 y = find_tmdb(mytoken, "", external_source = "imdb_id")
 str(y$movie_results$id)
+
+#----------------------------------------------------------------
+# GET BUDGET
+#----------------------------------------------------------------
+getTMDBBudget = function (mydf, myapikey) {
+  
+  for (x in 1:nrow(mydf)) {
+    myID = mydf[x,]$TMDBID
+    print(myID)
+    
+    if(!is.na(myID) && myID!="") {
+      
+      tryCatch (
+        {
+        myMovieDetails = movie(api_key=myapikey, id=myID)
+        myBudget = myMovieDetails$budget
+      }, error=function(e) myBudget=NA
+      )
+      
+      mydf[x, ]$TMDBbudget = myBudget
+      
+    } else {
+      print("could not find")
+    }  
+    
+  }
+  
+  return(mydf)
+}
+
+
+# tryCatch(
+#   {
+#     myMovieDetails = movie(api_key=mytoken, id=1870173)
+#     myBudget = myMovieDetails$budget
+#     }, error=function(e) print("NA")
+# )
+
+mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
+str(mcombined)
+
+mcombined = mcombined %>%
+  mutate(TMDBbudget = NA)
+
+
+newcombined = getTMDBBudget(mcombined, mytoken)
+
+write.csv(newcombined, "MovieListCombined.csv")
 
 
 #----------------------------------------------------
@@ -640,4 +686,21 @@ newcombined %>%
   filter(is.na(X)) %>% View
 
 write.csv(newcombined, "MovieListCombined.csv")
+
+
+#fix budget error
+# mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
+# str(mcombined)
+# 
+# options(scipen=999)
+# mcombined = mcombined %>%
+#   mutate(totBudget = as.integer(totBudget) * 10) 
+# write.csv(mcombined, "MovieListCombined.csv")
+# 
+# mbytitle = read.csv("MoviesByTitle.csv", stringsAsFactors = FALSE)
+# str(mbytitle)
+# 
+# mbytitle = mbytitle %>%
+#   mutate(totBudget = as.integer(totBudget) * 10) 
+# write.csv(mbytitle, "MoviesByTitle.csv")
 
