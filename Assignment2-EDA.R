@@ -227,6 +227,9 @@ mclean %>%
 #Studios 
 #- IMAX - specialised cinema for large film format.
 #- KL (Kino Lorber) are specalised cinemas for documentaries and specialize in art house, low budget
+#- Gathr (Gathr Films) - Theatrical On Demand cinema
+
+
 
 
 
