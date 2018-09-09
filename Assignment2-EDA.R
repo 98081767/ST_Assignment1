@@ -117,6 +117,9 @@ write.csv(cdata2, "MovieClean2.csv")
   # spread(Country, CountryTrue) %>% 
   # arrange(X.1) %>% View
 
+#----------------START EDA HERE---------------------------
+
+
 mclean = read.csv("MovieClean2.csv", stringsAsFactors = FALSE)
 
 
