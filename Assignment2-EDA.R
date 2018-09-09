@@ -180,6 +180,215 @@ mclean %>%
 #   3      2017   705       6.4           7       104.        101          65.6            66
 
 
+#------Box office sales (totGross)
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  group_by(startYear) %>%
+  summarise(total=n(),
+            avgGross = mean(totGross, na.rm=TRUE),
+            medGross = median(totGross, na.rm=TRUE),
+            maxGross = max(totGross, na.rm=TRUE),
+            minGross = min(totGross, na.rm=TRUE),
+            iqrGross = IQR(totGross, na.rm=TRUE),
+            Q1Gross = quantile(totGross, 1/4, na.rm=TRUE),
+            Q3Gross = quantile(totGross, 3/4, na.rm=TRUE)
+            )
+
+#       startYear total  avgGross medGross   maxGross minGross iqrGross Q1Gross Q3Gross
+#         <int> <int>     <dbl>    <dbl>      <dbl>    <dbl>    <dbl>   <dbl>   <dbl>
+#   1      2015   673 18200660.   175900 1009345800      100  3191300   24300 3215600
+#   2      2016   720 16867940.   138550  557324700      100  3420300   26700 3447000
+#   3      2017   705 16242887.   179400  627476700      400  2473400   21800 2495200
+
+
+
+salesBreaks = c(0, 1000, 10000, 50000, 100000, 200000, 500000, 1000000, 5000000, 10000000, 50000000, 1000000000)
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totGross, x=as.factor(startYear))) +
+  geom_boxplot() +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks)
+#NOTES:
+#- most movies gross between 20,000 and 3M
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totGross)) +
+  geom_histogram() +
+  scale_x_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~startYear)
+#NOTES: There are two peaks for grossing films, peak around $50,000 and $5M
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totGross, fill=as.factor(startYear))) +
+  geom_density(alpha=.2) +
+  scale_x_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+
+
+#-------Budget
+# Gross refers to gross earnings in U.S. dollars. On average, the movie's
+# distributor receives a little more than half of the final gross (often
+# referred to as the "rentals") with the remainder going to the exhibitor (i.e.,
+# movie theater). The money split varies from movie to movie, but, generally,
+# the contract favors the distributor in early weeks and shifts to the exhibitor
+# later on.
+
+mclean %>% 
+  select(Title,
+         totGross, 
+         totBudget
+  ) %>%
+  missmap()
+
+
+mclean %>% 
+  select(Title,
+         totGross, 
+         totBudget
+  ) %>%
+  summary()
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  group_by(startYear) %>%
+  summarise(total=n(),
+            avgBudget = mean(totBudget, na.rm=TRUE),
+            medBudget = median(totBudget, na.rm=TRUE),
+            maxBudget = max(totBudget, na.rm=TRUE),
+            minBudget = min(totBudget, na.rm=TRUE),
+            iqrBudget = IQR(totBudget, na.rm=TRUE),
+            Q1Budget = quantile(totBudget, 1/4, na.rm=TRUE),
+            Q3Budget = quantile(totBudget, 3/4, na.rm=TRUE)
+  )
+#       startYear total avgBudget medBudget maxBudget minBudget iqrBudget Q1Budget Q3Budget
+#         <int> <int>     <dbl>     <dbl>     <dbl>     <dbl>     <dbl>    <dbl>    <dbl>
+#   1      2015   673 36894031.  18000000 250000000     50000  33075000  6925000 40000000
+#   2      2016   720 37406028.  16000000 250000000     15000  34800000  5200000 40000000
+#   3      2017   705 45248465.  25000000 500000000     75000  40227010  9772990 50000000
+
+budgetBreaks = c(0, 1000, 10000, 50000, 100000, 200000, 500000, 1000000, 5000000, 10000000, 50000000, 1000000000)
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totBudget, x=as.factor(startYear))) +
+  geom_boxplot() +
+  scale_y_log10(labels = scales::dollar, breaks=budgetBreaks)
+#NOTES:
+#- movie budget centre is $16M to $25M, and range between $500,000 and $50M
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totBudget)) +
+  geom_histogram() +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totBudget, fill=as.factor(startYear))) +
+  geom_density(alpha=.2) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+#A majority of the movie budget is over $5M. Is it because the other movie budgets weren't provided?
+#	- Is it due to certain studios only? 
+# - Is budget generally provided for top grossing films? 
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  mutate(topGross = totGross >= 5000000) %>% 
+  ggplot(aes(x=totBudget, fill=as.factor(topGross))) +
+  geom_density(alpha=.2) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) 
+#- Top grossing films generally have higher budget but graph shows that non top grossing films also has budgets provided. 
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  mutate(topGross = totGross >= 5000000) %>% 
+  group_by(topGross) %>%
+  summarise(num=n())
+# topGross   num
+# <lgl>    <int>
+#   1 FALSE     1636
+#   2 TRUE       461
+#   3 NA           1
+
+#is budget generally provided by certain studios?
+#-It appears the top 10 are well known, provide the most movies and generally have higher budgets
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  mutate(hasBudget = !is.na(totBudget)) %>%
+  group_by(Studio) %>%
+  summarise(num=n(),
+            numBudget = sum(hasBudget),
+            avgBudget = mean(totBudget, na.rm=TRUE),
+            medBudget = median(totBudget, na.rm=TRUE),
+            maxBudget = max(totBudget, na.rm=TRUE),
+            medTheatre = median(totTheatreCount, na.rm=TRUE)
+            ) %>% 
+  arrange(desc(numBudget)) %>% View
+
+
+#correlation between sales and budget
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  summarise(corr = cor(totGross, totBudget, use="complete.obs"))
+#0.684632
+
+# show correlation between budget and box office sales
+# - the red line shows the break even point. Most of the movies are below the red line meaning they aren't even breaking even. 
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  ggplot(aes(y=totGross, x=totBudget)) +
+    geom_point() + 
+    geom_abline(intercept = 0, colour="red") +
+    geom_smooth(method="lm", se=TRUE) +
+    scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+    scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  
+
+#get studios that provide budget for more than 10 films  
+studioWRec = mclean %>%
+    filter(startYear %in% c(2015:2017)) %>%
+    filter(!is.na(totBudget)) %>%
+    mutate(hasBudget = !is.na(totBudget)) %>%
+    group_by(Studio) %>%
+    summarise(numBudget = sum(hasBudget)) %>% View
+    filter(numBudget >= 10) %>%
+    select(Studio) 
+
+
+studioWRec = as.character(studioWRec$Studio)
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  filter(Studio %in% studioWRec) %>%
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point() + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~ Studio)
+#- graph shows that some have a negative correlation between budget and sales. 
+
+
 
 #-------Weeks On by Year
 mclean %>%
@@ -223,11 +432,117 @@ mclean %>%
 #investigate outliers
 mclean %>%
   filter(startYear %in% c(2015:2017)) %>%
-  filter(WeeksOn >= 25) 
+  filter(WeeksOn >= 25) %>% View
 #Studios 
 #- IMAX - specialised cinema for large film format.
 #- KL (Kino Lorber) are specalised cinemas for documentaries and specialize in art house, low budget
 #- Gathr (Gathr Films) - Theatrical On Demand cinema
+
+
+#filter out movies from specialist studios
+#NOTES: 
+# - Still some outliers with weeks greater than 20
+# - Movie showing range between 1 to 9 weeks
+'%!in%' <- function(x,y)!('%in%'(x,y))
+mclean %>% 
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(Studio %!in% c("Imax", "KL", "Gathr")) %>%
+  filter(WeeksOn >=1) %>%
+  ggplot(aes(y=WeeksOn, x=as.factor(startYear))) +
+  geom_boxplot()
+
+
+#outlier movies
+mclean %>% 
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(Studio %!in% c("Imax", "KL", "Gathr")) %>%
+  filter(WeeksOn >= 20) %>% 
+  select(Title)
+  
+
+#------Start Week
+# In the United States, summer vacation lasts two to three months. The dates
+# vary depending on the location of the school district, with two major formats.
+# One is from late May-mid June to early September (in most northern states),
+# the other major format lasting from late May to mid August (in most southern
+# and western states). (Excluding some districts, as some schools may end late
+# June and begin early September).
+#
+# Summer vacation or break lasts for about 12 weeks, starting anywhere from late
+# May to mid June, and ending anywhere from late August to Labor Day, the first
+# Monday in September. This often depends on the region – for example, most
+# schools in the Northeastern United States end in June and start the Wednesday
+# after Labor Day (Teachers report back on Tuesday), while the majority of
+# schools in the Southern United States have schools end in May and start again
+# in August.
+
+#summer vacation - week 20-24 to 34-35
+#north/south - week 22-35
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=startWeek)) +
+  geom_histogram(binwidth = 2) +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=startWeek, x=as.factor(startYear))) +
+  geom_boxplot()
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=startWeek, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+#NOTES:
+#- Looks like two peak release periods - Week 15 and week 40
+#-https://en.wikipedia.org/wiki/Dump_months
+#- The dump months are what the film community calls the two periods of the year
+#when there are lowered commercial and critical expectations for most new
+#releases from American filmmakers and distributors. Domestic audiences during
+#these periods are smaller than the rest of the year, so no tentpole movies are
+#released. January[1] and February are usually most commonly described this way,
+#with August and September sometimes included.
+#- this seems to line up with when movies are released.
+
+#correlation with Box office sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=startWeek, y=log(totGross))) +
+  geom_jitter()
+  
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  group_by(startYear) %>%
+  summarise(corr = cor(startWeek, totGross, use="complete.obs"))
+# startYear   corr
+# <int>  <dbl>
+#   1      2015 0.0385
+#   2      2016 0.0344
+#   3      2017 0.0302
+  
+cor(mclean$startWeek, mclean$totGross, use="complete.obs")
+#NOTES: There is no correlation between gross sales and start week 
+# - but when are the high grossing films released?
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  mutate(topGross = totGross >= 5000000) %>%
+  ggplot(aes(x=startWeek, fill=as.factor(topGross))) +
+  geom_density(alpha=.2)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  mutate(topGross = totGross >= 5000000) %>%
+  ggplot(aes(y=startWeek, x=as.factor(topGross))) +
+  geom_boxplot()
+
 
 
 
