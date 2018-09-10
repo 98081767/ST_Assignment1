@@ -356,8 +356,9 @@ mclean %>%
   filter(startYear %in% c(2015:2017)) %>%
   filter(!is.na(totBudget)) %>%
   ggplot(aes(y=totGross, x=totBudget)) +
-    geom_point() + 
+    geom_point(alpha=0.5) + 
     geom_abline(intercept = 0, colour="red") +
+    geom_abline(intercept = 0.5, slope=1, colour="green") +
     geom_smooth(method="lm", se=TRUE) +
     scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
     scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
@@ -370,7 +371,7 @@ studioWRec = mclean %>%
     filter(!is.na(totBudget)) %>%
     mutate(hasBudget = !is.na(totBudget)) %>%
     group_by(Studio) %>%
-    summarise(numBudget = sum(hasBudget)) %>% View
+    summarise(numBudget = sum(hasBudget)) %>% 
     filter(numBudget >= 10) %>%
     select(Studio) 
 
@@ -384,6 +385,7 @@ mclean %>%
   ggplot(aes(y=totGross, x=totBudget)) +
   geom_point() + 
   geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0.5, slope=1, colour="green") +
   geom_smooth(method="lm", se=TRUE) +
   scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
   scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
@@ -547,7 +549,250 @@ mclean %>%
   geom_boxplot()
 
 
+#--------IMDB Rating
 
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  select(IMDBRating) %>%
+  summary()
+
+# IMDBRating   
+# Min.   :21.00  
+# 1st Qu.:59.00  
+# Median :66.00  
+# Mean   :65.21  
+# 3rd Qu.:72.00  
+# Max.   :98.00  
+# NA's   :345   
+  
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=IMDBRating, x=as.factor(startYear))) +
+  geom_boxplot()
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=IMDBRating)) +
+  geom_histogram(binwidth = 2) +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=IMDBRating, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>%
+  summarise(corr = cor(totGross, IMDBRating, use="complete.obs"))
+#0.1057696
+
+# show correlation between IMDB Rating and box office sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>%
+  ggplot(aes(y=totGross, x=IMDBRating)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+#add awards as a facet.
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>%
+  ggplot(aes(y=totGross, x=IMDBRating, color=Awards)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=IMDBRating, x=as.factor(Awards))) +
+  geom_boxplot() +
+  facet_wrap(~ startYear)
+
+
+
+
+#what if i get data from 2018
+mclean %>%
+  filter(startYear %in% c(2018)) %>%
+  filter(!is.na(IMDBRating)) %>%
+  ggplot(aes(y=totGross, x=IMDBRating)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+mclean %>%
+  filter(startYear %in% c(2018)) %>%
+  filter(!is.na(IMDBRating)) %>%
+  summarise(corr = cor(totGross, IMDBRating, use="complete.obs"))
+#1 0.1531358
+
+
+#Rotten tomatoes
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(RTRating)) %>%
+  summarise(corr = cor(totGross, RTRating, use="complete.obs"))
+#-0.00191799
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=RTRating, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(RTRating)) %>%
+  ggplot(aes(y=totGross, x=RTRating)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=RTRating, x=as.factor(Awards))) +
+  geom_boxplot() + 
+  facet_wrap(~ startYear)
+
+
+#Metacritic
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Metacritic)) %>%
+  summarise(corr = cor(totGross, Metacritic, use="complete.obs"))
+#-0.00191799
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=Metacritic, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Metacritic)) %>%
+  ggplot(aes(y=totGross, x=Metacritic)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=Metacritic, x=as.factor(Awards))) +
+  geom_boxplot() + 
+  facet_wrap(~ startYear)
+
+
+#-------Runtime
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  select(Runtime) %>%
+  summary()
+
+# Runtime     
+# Min.   :  2.0  
+# 1st Qu.: 91.0  
+# Median :101.0  
+# Mean   :104.2  
+# 3rd Qu.:116.0  
+# Max.   :319.0  
+# NA's   :332 
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=Runtime, x=as.factor(startYear))) +
+  geom_boxplot()
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=Runtime)) +
+  geom_histogram(binwidth = 10) +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=Runtime, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Runtime)) %>%
+  summarise(corr = cor(totGross, Runtime, use="complete.obs"))
+#0.1792978
+
+# show correlation between Runtime and box office sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Runtime)) %>%
+  ggplot(aes(y=totGross, x=Runtime)) +
+  geom_jitter(alpha=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+
+#---------Awards
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totGross, x=as.factor(Awards))) +
+  geom_boxplot() + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) 
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Awards)) %>%
+  summarise(corr = cor(totGross, Awards, use="complete.obs"))
+
+# 0.141846 - can't do correlation on non linear relationship
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(Awards)) %>%
+  ggplot(aes(x=totGross, fill=as.factor(Awards))) +
+  geom_density(alpha=.2) +
+  scale_x_log10(labels = scales::dollar, breaks=salesBreaks) 
+
+
+#-------Rated
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  select(Rated) %>%
+  table()
+
+# APPROVED         G NOT RATED    PASSED        PG     PG-13         R     TV-14     TV-MA     TV-PG     TV-Y7   UNRATED 
+#       6        10       293         1       131       326       491        15        23        10         1        93 
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totGross, x=as.factor(Rated))) +
+  geom_boxplot() + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) 
 
 
 
