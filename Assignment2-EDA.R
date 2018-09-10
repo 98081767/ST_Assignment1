@@ -795,6 +795,46 @@ mclean %>%
   scale_y_log10(labels = scales::dollar, breaks=salesBreaks) 
 
 
+#-------Genre
+
+#genre by sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Genre, GValid, G_Action:G_Western) %>% 
+  filter(GValid == 1) %>% 
+  ggplot(aes(y=totGross, x=as.factor(Genre))) +
+  geom_boxplot() + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+#genre by budget
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Genre, GValid, G_Action:G_Western) %>% 
+  filter(GValid == 1) %>% 
+  ggplot(aes(y=totBudget, x=as.factor(Genre))) +
+  geom_boxplot() +
+  scale_y_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  gather(Genre, GValid, G_Action:G_Western) %>% 
+  filter(GValid == 1) %>% 
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5) + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0.5, slope=1, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~Genre)
+
+
+
 
 #------Studio
 mclean %>%
