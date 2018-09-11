@@ -358,7 +358,7 @@ mclean %>%
   ggplot(aes(y=totGross, x=totBudget)) +
     geom_point(alpha=0.5) + 
     geom_abline(intercept = 0, colour="red") +
-    geom_abline(intercept = 0.5, slope=1, colour="green") +
+    geom_abline(intercept = 0, slope=1.66, colour="green") +
     geom_smooth(method="lm", se=TRUE) +
     scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
     scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
@@ -385,7 +385,7 @@ mclean %>%
   ggplot(aes(y=totGross, x=totBudget)) +
   geom_point() + 
   geom_abline(intercept = 0, colour="red") +
-  geom_abline(intercept = 0.5, slope=1, colour="green") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
   geom_smooth(method="lm", se=TRUE) +
   scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
   scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
@@ -826,7 +826,7 @@ mclean %>%
   ggplot(aes(y=totGross, x=totBudget)) +
   geom_point(alpha=0.5) + 
   geom_abline(intercept = 0, colour="red") +
-  geom_abline(intercept = 0.5, slope=1, colour="green") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
   geom_smooth(method="lm", se=TRUE) +
   scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
   scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
@@ -834,6 +834,14 @@ mclean %>%
   facet_wrap(~Genre)
 
 
+# testdf = data.frame(x=c(1:10), y=(1:10))
+# 
+# ggplot(testdf, aes(x=x, y=y)) + 
+#   geom_point() +
+#   geom_abline(intercept = 0, colour="red") +
+#   geom_abline(intercept = 0, slope=2, colour="green") +
+#   scale_x_continuous(breaks=c(1:10)) +
+#   scale_y_continuous(breaks=c(1:10))
 
 
 #------Studio
