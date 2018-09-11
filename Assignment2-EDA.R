@@ -834,14 +834,14 @@ mclean %>%
   facet_wrap(~Genre)
 
 
-# testdf = data.frame(x=c(1:10), y=(1:10))
-# 
-# ggplot(testdf, aes(x=x, y=y)) + 
-#   geom_point() +
-#   geom_abline(intercept = 0, colour="red") +
-#   geom_abline(intercept = 0, slope=2, colour="green") +
-#   scale_x_continuous(breaks=c(1:10)) +
-#   scale_y_continuous(breaks=c(1:10))
+#------Total Theatre count
+
+
+#------Language
+
+
+
+
 
 
 #------Studio
@@ -856,10 +856,10 @@ mclean %>%
 
 
 #check outliers
-#check missing data - impute
+#check missing data - impute (IMDBRating, Runtime, Rated,)
 #preliminary EDA (break out factors)
 
-#STAGE 3 - DAT PREPARATION
+#STAGE 3 - DATA PREPARATION
 #check missing data - impute
 #inclusion/exclusion report
 #aggregate / merge
