@@ -31,6 +31,10 @@ install.packages("Amelia")
 library(Amelia)
 
 
+install.packages("plotly")
+library(plotly)
+
+
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
 #-----------------------------------------------------------------------------
@@ -835,6 +839,137 @@ mclean %>%
 
 
 #------Total Theatre count
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  select(totTheatreCount) %>%
+  summary()
+
+# totTheatreCount
+# Min.   :    0  
+# 1st Qu.:   15  
+# Median :   78  
+# Mean   : 2979  
+# 3rd Qu.: 1282  
+# Max.   :47135
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totTheatreCount, x=as.factor(startYear))) +
+  geom_boxplot()
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totTheatreCount)) +
+  geom_histogram() +
+  facet_wrap(~startYear)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(x=totTheatreCount, fill=as.factor(startYear))) +
+  geom_density(alpha=.2)
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totTheatreCount)) %>%
+  summarise(corr = cor(totGross, totTheatreCount, use="complete.obs"))
+#0.8334217
+
+# show correlation between totTheatreCount and box office sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totTheatreCount)) %>%
+  ggplot(aes(y=totGross, x=totTheatreCount)) +
+  geom_jitter(alpha=0.5, width=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  scale_x_log10() +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  plot_ly(z= ~log(totGross), x= ~log(totBudget), y= ~log(totTheatreCount), opacity=0.6) %>%
+    add_markers() %>%
+    add_surface(x= ~x, y= ~y, z= ~plane0, showscale=FALSE)
+  
+
+testdata = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totBudget)) %>%
+  filter(!is.na(totTheatreCount)) 
+  
+
+movie1.mod = lm(log(totGross) ~ log(totBudget) + log(totTheatreCount), data=testdata)
+summary(movie1.mod)
+
+movie2.mod = lm(log(totGross) ~ log(totTheatreCount), data=testdata)
+summary(movie2.mod)
+
+movie3.mod = lm(log(totGross) ~ log(totBudget), data=testdata)
+summary(movie3.mod)
+
+
+# show correlation between totTheatreCount and totBudget to check for collinearity
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totTheatreCount)) %>%
+  filter(!is.na(totBudget)) %>%
+  summarise(corr = cor(log(totBudget), log(totTheatreCount), use="complete.obs"))
+#0.6068515
+
+  
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(totTheatreCount)) %>%
+  filter(!is.na(totBudget)) %>%
+  ggplot(aes(y=totTheatreCount, x=totBudget)) +
+  geom_jitter(alpha=0.5, width=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10() +
+  scale_x_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+movie4.mod = lm(log(totTheatreCount) ~ log(totBudget), data=testdata)
+summary(movie4.mod)
+
+
+# install.packages("modelr")
+# library(modelr)
+# install.packages("broom")
+# library(broom)
+
+# grid = mclean %>%
+#   filter(startYear %in% c(2015:2017)) %>%
+#   data_grid(
+#     totGross = seq_range(totGross, n=10),
+#     totBudget = seq_range(totBudget, n=10),
+#     totTheatreCount = seq_range(totTheatreCount, n=10)
+#   )
+# 
+# testdata = mclean %>%
+#   filter(startYear %in% c(2015:2017)) 
+#   
+#   
+# movie.mod = lm(totGross ~ totBudget + totTheatreCount, data=testdata)
+# summary(movie.mod)
+# 
+# tidy_plane = movie.mod %>%
+#   augment(newdata = grid)
+
+# x1 = unique(mclean$totBudget)
+# 
+# plane0 = tidy_plane %>%
+#    pull(.fitted) %>%
+#    matrix(nrow = length(3000), byrow = TRUE)
+
+
 
 
 #------Language
