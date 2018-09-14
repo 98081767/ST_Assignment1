@@ -34,6 +34,9 @@ library(Amelia)
 install.packages("plotly")
 library(plotly)
 
+install.packages("Metrics")
+library(Metrics)
+
 
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
@@ -166,6 +169,11 @@ mclean = mclean %>%
 
 #STAGE 2 - DATA UNDERSTANDING
 #check distribution of each variable
+#check outliers
+#check missing data - impute (IMDBRating, Runtime, Rated,)
+#preliminary EDA (break out factors)
+
+
 
 #------Movies by Year
 mclean %>% 
@@ -903,6 +911,7 @@ testdata = mclean %>%
   filter(startYear %in% c(2015:2017)) %>%
   filter(!is.na(totBudget)) %>%
   filter(!is.na(totTheatreCount)) 
+
   
 
 movie1.mod = lm(log(totGross) ~ log(totBudget) + log(totTheatreCount), data=testdata)
@@ -914,6 +923,8 @@ summary(movie2.mod)
 movie3.mod = lm(log(totGross) ~ log(totBudget), data=testdata)
 summary(movie3.mod)
 
+movie5.mod = lm(log(totGross) ~ log(totBudget) + log(totTheatreCount) + IMDBRating, data=testdata)
+summary(movie5.mod)
 
 # show correlation between totTheatreCount and totBudget to check for collinearity
 mclean %>%
@@ -974,7 +985,96 @@ summary(movie4.mod)
 
 #------Language
 
+#language by sales
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Language, LValid, L_Aboriginal:L_Zulu) %>% 
+  filter(LValid == 1) %>% 
+  ggplot(aes(y=totGross, x=as.factor(Language))) +
+  geom_boxplot() + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
 
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Language, LValid, L_Aboriginal:L_Zulu) %>% 
+  filter(LValid == 1) %>%
+  group_by(Language) %>%
+  summarise(totCount = n()) %>%
+  ggplot(aes(x=totCount)) +
+    geom_histogram(binwidth = 5)
+
+
+#list of langugage with movies over 20
+keyLang = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Language, LValid, L_Aboriginal:L_Zulu) %>% 
+  filter(LValid == 1) %>%
+  group_by(Language) %>%
+  summarise(totCount = n()) %>%
+  filter(totCount >= 20) %>% 
+  filter(Language != "L_NA") %>% 
+  select(Language)
+  
+
+keyLang = keyLang$Language
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Language, LValid, L_Aboriginal:L_Zulu) %>% 
+  filter(LValid == 1) %>%
+  filter(Language %in% keyLang) %>% 
+  ggplot(aes(y=totGross, x=as.factor(Language))) +
+  geom_boxplot() + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+langLong = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  gather(Language, LValid, L_Aboriginal:L_Zulu) %>% 
+  filter(LValid == 1) %>%
+  filter(Language %in% keyLang) 
+
+lang.aov = aov(totGross ~ Language, data=langLong)
+
+summary(lang.aov)
+
+#                 Df    Sum Sq   Mean Sq F value Pr(>F)  
+#   Language      13 9.952e+16 7.656e+15   1.775 0.0415 *
+#   Residuals   2340 1.009e+19 4.313e+15 
+
+# just barely significant that a difference in language causes a change in sales.
+
+
+
+
+# #genre by budget
+# mclean %>%
+#   filter(startYear %in% c(2015:2017)) %>%
+#   gather(Genre, GValid, G_Action:G_Western) %>% 
+#   filter(GValid == 1) %>% 
+#   ggplot(aes(y=totBudget, x=as.factor(Genre))) +
+#   geom_boxplot() +
+#   scale_y_log10(labels = scales::dollar, breaks=budgetBreaks) +
+#   theme(axis.text.x = element_text(angle = 60, hjust = 1))
+# 
+# 
+# mclean %>%
+#   filter(startYear %in% c(2015:2017)) %>%
+#   filter(!is.na(totBudget)) %>%
+#   gather(Genre, GValid, G_Action:G_Western) %>% 
+#   filter(GValid == 1) %>% 
+#   ggplot(aes(y=totGross, x=totBudget)) +
+#   geom_point(alpha=0.5) + 
+#   geom_abline(intercept = 0, colour="red") +
+#   geom_abline(intercept = 0, slope=1.66, colour="green") +
+#   geom_smooth(method="lm", se=TRUE) +
+#   scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+#   scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+#   theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+#   facet_wrap(~Genre)
 
 
 
@@ -987,12 +1087,64 @@ mclean %>%
 
 
 
+#----check missing data for chosen model
+
+
+mclean %>% 
+  select(X.1, 
+         Title, 
+         totTheatreCount, 
+         totGross, 
+         totBudget,
+         IMDBRating
+  ) %>%
+  missmap()
+
+
+mclean %>% 
+  select(X.1, 
+         Title, 
+         totTheatreCount, 
+         totGross, 
+         totBudget,
+         IMDBRating
+  ) %>%
+  summary()
+
+
+mclean %>% 
+  select(X.1, 
+         Title, 
+         totTheatreCount, 
+         totGross, 
+         totBudget,
+         IMDBRating,
+         RTRating,
+         Metacritic,
+         imdbID
+  ) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget)) %>%
+  summarise(count=n())
+#down to 872 counts
+
+mclean %>% 
+  select(X.1, 
+         Title, 
+         totTheatreCount, 
+         totGross, 
+         totBudget,
+         IMDBRating
+  ) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget)) %>%
+  missmap()
 
 
 
-#check outliers
-#check missing data - impute (IMDBRating, Runtime, Rated,)
-#preliminary EDA (break out factors)
+
 
 #STAGE 3 - DATA PREPARATION
 #check missing data - impute
@@ -1011,71 +1163,273 @@ mclean %>%
 #segment data for highest profit and repeat models
 
 
+train = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget))
+
+movie.form = as.formula("log(totGross) ~ log(totBudget) + log(totTheatreCount) + IMDBRating")
+
+movie.mod = lm(movie.form, data=train)
+summary(movie.mod)
+
+plot(movie.mod)
+
+#check outliers:
+out1 = train %>%
+  filter(row_number(X.1) %in% c(614, 437, 271, 3, 110)) %>% 
+  select(X.1)
 
 
+out2 = train %>%
+  filter(totBudget < 200000 & totGross > 1000000) %>% 
+  select(X.1)
 
-test = mcombined %>%
-  #filter(Title=="12 Strong") %>%
-  mutate(totBudget = trimws(totBudget)) %>%
-  replace_with_na(replace = list(totBudget=c("NA"))) %>%
-  filter(!is.na(totBudget)) #%>% View
+out3 = train %>%
+  filter(totBudget > 1000000 & totGross < 5000) %>% 
+  select(X.1)
 
-options(digits=10)
-test$totBudget = as.numeric(test$totBudget)
 
-ggplot(test, aes(x=totBudget, y=totGross)) +
-  geom_jitter(alpha=0.3)
-
-ggplot(test, aes(x=cut(totBudget, breaks=11), y=totGross)) +
-  geom_jitter(alpha=0.3) 
-
-ggplot(test, aes(x=cut(totBudget, breaks=15), y=totGross)) +
-  geom_boxplot() 
-
-#abline shows that majority of movies make more than budget
-
-ggplot(test, aes(x=totBudget, y=totGross)) +
-  geom_jitter(alpha=0.3) +
-  scale_x_log10() +
-  scale_y_log10()+
+outl = rbind(out1, out2, out3)
+  
+  
+train %>%
+  mutate(leverage = X.1 %in% outl$X.1) %>% 
+  filter(startYear %in% c(2015:2017)) %>%
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
   geom_abline(intercept = 0, colour="red") +
-  geom_smooth(method="lm")
-
-ggplot(test, aes(x=cut(log(totBudget), breaks=11), y=log(totGross))) +
-  geom_jitter(alpha=0.3) 
-
-ggplot(test, aes(x=cut(log(totBudget), breaks=15), y=log(totGross))) +
-  geom_boxplot()
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
 
 
-
-cor(log(test$totBudget), log(test$totGross))
-
-
-movie.mod = lm(totGross ~ totBudget, data=test)
-
-summary(movie.mod)
+train$pred = predict(movie.mod , newdata=train)
+rmse(train$pred, log(train$totGross))
+#0.6547894
 
 
-movie.mod = lm(totGross ~ totBudget, data=test)
-
-summary(movie.mod)
+train %>%
+ggplot(aes(x=pred, y=log(totGross))) +
+  geom_point() +
+  geom_abline(color="red")
 
 
 
-#mutate(totBudget = formatC(as.numeric(totBudget), digits=10, format="d")) %>% 
+test = mclean %>%
+  filter(startYear %in% c(2018)) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget))
 
-summary(mcombined)
 
-test %>% 
-  filter(!is.na(totBudget)) %>% 
-  mutate(totProfit = totGross - totBudget) %>%
-  group_by(startYear) %>%
-  summarise(avgBudget=mean(totBudget), 
-            avgGross = mean(totGross),
-            avgProfit = mean(totProfit),
-            sumBudget = sum(totBudget),
-            sumGross = sum(totGross)
-  ) %>% View
+test$pred = predict(movie.mod, newdata=test)
+rmse(test$pred, log(test$totGross))
+test.rho = cor(test$pred, log(test$totGross))
+test.rho2 = test.rho^2
+
+test %>%
+  ggplot(aes(x=pred, y=log(totGross))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+install.packages("vtreat")
+library(vtreat)
+
+movie.form = as.formula("log(totGross) ~ log(totBudget) + log(totTheatreCount) + IMDBRating")
+
+cvtrain = mclean %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget))
+
+splitPlan = kWayCrossValidation(nRows=nrow(cvtrain), nSplits = 3, NULL, NULL)
+
+k = 3 # Number of folds
+cvtrain$pred.cv = 0 
+for(i in 1:k) {
+  split = splitPlan[[i]]
+  model.cv = lm(movie.form, data = cvtrain[split$train,])
+  cvtrain$pred.cv[split$app] = predict(model.cv, newdata = cvtrain[split$app,])
+}
+
+cvtrain %>%
+  ggplot(aes(x=pred.cv, y=log(totGross))) +
+  geom_point() +
+  geom_abline(color="red")
+
+rmse(cvtrain$pred.cv, log(cvtrain$totGross))
+cvtrain.rho = cor(cvtrain$pred.cv, log(cvtrain$totGross))
+cvtrain.rho2 = cvtrain.rho^2
+cvtrain.rho2
+
+
+
+#check collinearity
+cvtrain %>%
+  select(totGross,
+         totBudget,
+         totTheatreCount,
+         IMDBRating) %>%
+  mutate(totGross = log(totGross),
+         totBudget = log(totBudget),
+         totTheatreCount = log(totTheatreCount)
+         ) %>%
+  pairs()
+
+
+install.packages("corrplot")
+library(corrplot)
+
+corrcheck = cvtrain %>%
+  select(totGross,
+         totBudget,
+         totTheatreCount,
+         IMDBRating) %>%
+  mutate(totGross = log(totGross),
+         totBudget = log(totBudget),
+         totTheatreCount = log(totTheatreCount)
+  ) 
+
+corrplot.mixed(cor(corrcheck))
+
+
+
+
+#now find out what is going on with movies above the red line.
+
+
+mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget)) %>%
+  mutate(good = totGross > totBudget) %>% 
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=good)) + 
+  #geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+mgood = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget)) %>%
+  mutate(good = totGross > totBudget) %>%
+  filter(good == TRUE)
+
+
+mgood %>%
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=good)) + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+
+mgood.form = as.formula("log(totGross) ~ log(totBudget)")
+
+mgood.mod = lm(mgood.form, data=mgood)
+summary(mgood.mod)
+
+plot(mgood.mod)
+
+#check high leverage
+mgood %>%
+  mutate(leverage = row_number(X.1) %in% c(207, 136, 198)) %>% 
+  # X.1       Title
+  # 1 1629        NH10
+  # 2 2282 The D Train
+  # 3 2367 The Gallows
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+
+good.corr = mgood %>%
+  select(totGross,
+         totBudget,
+         totTheatreCount,
+         IMDBRating) %>%
+  mutate(totGross = log(totGross),
+         totBudget = log(totBudget),
+         totTheatreCount = log(totTheatreCount)
+  ) 
+
+corrplot.mixed(cor(good.corr))
+
+
+#check poor movies:
+mbad = mclean %>%
+  filter(startYear %in% c(2015:2017)) %>%
+  filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(totGross)) %>%
+  filter(!is.na(totBudget)) %>%
+  mutate(good = totGross > totBudget) %>%
+  filter(good == FALSE)
+
+
+mbad %>%
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=good)) + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+
+mbad.form = as.formula("log(totGross) ~ log(totBudget)")
+
+mbad.mod = lm(mbad.form, data=mbad)
+summary(mbad.mod)
+
+plot(mbad.mod)
+
+
+#check high leverage
+mbad %>%
+  mutate(leverage = row_number(X.1) %in% c(359, 256, 160)) %>%  
+  filter(leverage == TRUE) %>%
+  select (X.1, imdbID, Title, totTheatreCount, totBudget, totGross)
+#   X.1                                               Title  totTheatreCount  totBudget   totGross
+# 1 1303                                         Lazer Team              50   2,480,421  1,281,800
+# 2 2150 Tad the Lost Explorer and the Secret of King Midas             100  10,778,400      5,900
+# 3 2967                                         Wolf Totem               2  38,000,000    224,100
+  ggplot(aes(y=totGross, x=totBudget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+
 
 
