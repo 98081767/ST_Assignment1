@@ -1555,12 +1555,12 @@ mclean %>%
 
 train = mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
-  #filter(!is.na(IMDBRating)) %>% 
+  filter(!is.na(IMDB_Rating)) %>% 
   filter(Theatres !=0) %>%
   filter(!is.na(Sales)) %>%
   filter(!is.na(Budget))
 
-movie.form = as.formula("log(Sales) ~ log(Budget) + log(Theatres)")
+movie.form = as.formula("log(Sales) ~ log(Budget) + log(Theatres) + IMDB_Rating")
 
 movie.mod = lm(movie.form, data=train)
 summary(movie.mod)
@@ -1603,9 +1603,11 @@ train$pred = predict(movie.mod , newdata=train)
 rmse(train$pred, log(train$Sales))
 #0.6651602
 
+sd(log(train$Sales))
+
 
 train %>%
-ggplot(aes(x=pred, y=log(totGross))) +
+ggplot(aes(x=pred, y=log(Sales))) +
   geom_point() +
   geom_abline(color="red")
 
@@ -1613,6 +1615,7 @@ ggplot(aes(x=pred, y=log(totGross))) +
 
 test = mclean2 %>%
   filter(Year %in% c(2018)) %>%
+  filter(!is.na(IMDB_Rating)) %>%
   filter(Theatres !=0) %>%
   filter(!is.na(Sales)) %>%
   filter(!is.na(Budget))
@@ -1622,6 +1625,7 @@ test$pred = predict(movie.mod, newdata=test)
 rmse(test$pred, log(test$Sales))
 test.rho = cor(test$pred, log(test$Sales))
 test.rho2 = test.rho^2
+test.rho2
 
 test %>%
   ggplot(aes(x=pred, y=log(Sales))) +
@@ -1635,6 +1639,7 @@ library(vtreat)
 
 cvtrain = mclean2 %>%
   filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
   filter(!is.na(Sales)) %>%
   filter(!is.na(Budget))
 
@@ -1670,10 +1675,11 @@ cvtrain.rho2
 train2 = mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
   filter(!is.na(Sales)) 
   #filter(!is.na(Budget))
 
-movie.form2 = as.formula("log(Sales) ~ log(Theatres)")
+movie.form2 = as.formula("log(Sales) ~ log(Theatres) + IMDB_Rating")
 
 movie.mod2 = lm(movie.form2, data=train2)
 summary(movie.mod2)
@@ -1684,6 +1690,9 @@ plot(movie.mod2)
 train2$pred = predict(movie.mod2 , newdata=train2)
 rmse(train2$pred, log(train2$Sales))
 #0.8392449
+
+sd(log(train2$Sales))
+#3.256241
 
 
 train2 %>%
@@ -1696,6 +1705,7 @@ train2 %>%
 test2 = mclean2 %>%
   filter(Year %in% c(2018)) %>%
   filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
   filter(!is.na(Sales)) 
 
 
@@ -1718,6 +1728,7 @@ library(vtreat)
 
 cvtrain2 = mclean2 %>%
   filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
   filter(!is.na(Sales)) 
 
 
@@ -1742,6 +1753,14 @@ cvtrain2.rho = cor(cvtrain2$pred.cv, log(cvtrain2$Sales))
 cvtrain2.rho2 = cvtrain2.rho^2
 cvtrain2.rho2
 #0.9032991
+
+sd(log(cvtrain2$Sales))
+#3.271858
+
+
+#test if RMSE is less than sd
+sd(log(test2$Sales))
+#3.225612
 
 
 #check collinearity
