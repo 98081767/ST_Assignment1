@@ -38,6 +38,10 @@ install.packages("Metrics")
 library(Metrics)
 
 
+install.packages("stringr")
+library(stringr)
+
+
 mcombined = read.csv("MovieListCombined.csv", stringsAsFactors = FALSE)
 
 #-----------------------------------------------------------------------------
@@ -143,6 +147,9 @@ mclean2 = mclean %>%
     RottenTomatoes_Rating = RTRating,
     Metacritic_Rating = Metacritic
   ) 
+
+
+
 
 
 #studios
@@ -335,6 +342,25 @@ mclean2 %>%
 #   3      2017   705 45248465.  25000000 500000000     75000  40227010  9772990 50000000
 
 
+mclean2 %>%
+  ggplot(aes(x=log(Sales))) + 
+  geom_density() + 
+  scale_x_continuous(labels = scales::comma) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+mean(mclean2$Sales, na.rm=TRUE)
+#17,956,431
+
+log(mean(mclean2$Sales, na.rm=TRUE))
+#16.70346
+
+sd(mclean2$Sales, na.rm=TRUE)
+#61,191,206
+
+log(sd(mclean2$Sales, na.rm=TRUE))
+#17.92951
+
+
 
 mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
@@ -418,28 +444,59 @@ mclean2 %>%
 # - the red line shows the break even point. Most of the movies are below the red line meaning they aren't even breaking even. 
 
 mclean2 %>%
-  filter(Budget > 50000000 & Sales < 50000) %>% View
+  filter(Budget > 50000000 & Sales > 900000000) %>% View
 
-outl = c(2367, 1319)
+outl = c(2367, 1319, 2083)
+
+mclean2 %>%
+  filter(ID %in% outl) %>% View
+
+
+salesBreaks2 = c(0, 1000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 1000000000)
+budgetBreaks2 = c(0, 1000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000, 50000000, 1000000000)
+
+install.packages("extrafont")
+library(extrafont)
+font_import(paths = NULL, recursive = TRUE, prompt = TRUE,pattern = NULL)
+fonts()
+windowsFonts(Times=windowsFont("Times New Roman")) 
+windowsFonts(Arial=windowsFont("Arial")) 
 
 
 mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   filter(!is.na(Budget)) %>%
   mutate(Sales_Exceeds_Budget = Sales > Budget) %>%
-  mutate(leverage = ID %in% outl) %>% 
+  mutate(leverage = ID %in% outl) %>%
   ggplot(aes(y=Sales, x=Budget)) +
-    theme_minimal() +  
+    theme_bw(base_family = "Arial") +  
     geom_jitter(alpha=0.5, aes(color=Sales_Exceeds_Budget)) + 
     geom_text(nudge_y=-0.1, aes(label=ifelse(leverage, Title, ""))) +
     geom_abline(intercept = 0, colour="red") +
-    geom_abline(intercept = 0, slope=1.66, colour="green") +
-    geom_smooth(method="lm", se=TRUE) +
-    scale_x_log10(labels = scales::dollar, breaks=budgetBreaks, limits=c(10000, 1000000000)) +
-    scale_y_log10(labels = scales::dollar, breaks=salesBreaks, limits=c(10000, 1000000000)) +
+    geom_abline(intercept = 0, slope=1.66, colour="#0FC3C7") +
+    geom_smooth(method="lm", se=TRUE, colour="gray95") +
+    scale_x_log10(labels = scales::dollar, breaks=budgetBreaks2) +
+    scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+    coord_cartesian(ylim=c(10000, 1100000000), xlim=c(10000,1100000000)) +
+    scale_color_manual(values=c("#808080", "#0FC3C7")) +
     #expand_limits(x=c(0, 1000000000), y=c(0, 1000000000)) +
-    theme(axis.text.x = element_text(angle = 60, hjust = 1))
+    labs(
+      x = "Movie Budget",
+      y = "Box office Sales",
+      title = "Relationship between Budget and Box Office Sales (2015-2017)",
+      caption = "Data source: IMDb 2018"
+    ) + 
+    theme(
+      text = element_text(family = "Arial", color = "gray25"),
+      axis.text.x = element_text(angle = 60, hjust = 1),
+      plot.subtitle = element_text(size = 12),
+      plot.caption = element_text(color = "gray30"),
+      plot.background = element_rect(fill = "gray95"),
+      plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+    )
     
+  
+
 
 
 # out3 = train %>%
@@ -1034,11 +1091,26 @@ mclean2 %>%
   mutate(Rated = replace(Rated, Rated %in% c("R", "TV-MA"), "MA")) %>%
   mutate(Rated = replace(Rated, Rated %in% c("NOT RATED", "UNRATED", "APPROVED", "PASSED"), "NOT RATED")) %>%
   mutate(Rated = factor(Rated, levels=c("G", "PG", "MA", "NOT RATED"))) %>% 
-  ggplot(aes(y=Sales, x=as.factor(Rated))) +
-  theme_minimal() + 
+  mutate(Highlight = Rated %in% c("G", "PG")) %>%
+  ggplot(aes(y=Sales, x=as.factor(Rated), fill=Highlight)) +
   geom_boxplot() + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
-  labs(x="Classification Ratings")
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  scale_fill_manual(values=c("#808080", "#0FC3C7")) +
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Classification Ratings",
+    y = "Box office Sales",
+    title = "Relationship between Classification Ratings and Box Office Sales (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) 
 
 
 #chisquared test
@@ -1093,11 +1165,27 @@ mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   gather(Genre, GValid, G_Action:G_Western) %>% 
   filter(GValid == 1) %>% 
-  ggplot(aes(y=Sales, x=as.factor(Genre))) +
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
+  mutate(Highlight = Genre %in% c("Action", "Adventure", "Animation", "Biography", "Horror")) %>%
+  ggplot(aes(y=Sales, x=as.factor(Genre), fill=Highlight)) +
   geom_boxplot() + 
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-  labs(x="Genre")
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  scale_fill_manual(values=c("#808080", "#0FC3C7")) +
+  theme_bw() + 
+    theme(
+      text = element_text(family = "Arial", color = "gray25"),
+      axis.text.x = element_text(angle = 60, hjust = 1),
+      plot.subtitle = element_text(size = 12),
+      plot.caption = element_text(color = "gray30"),
+      plot.background = element_rect(fill = "gray95"),
+      plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+    ) +
+    labs(
+      x = "Genre",
+      y = "Box office Sales",
+      title = "Relationship between Genre and Box Office Sales (2015-2017)",
+      caption = "Data source: IMDb 2018"
+    ) 
 
 
 
@@ -1110,27 +1198,63 @@ mclean %>%
   filter(startYear %in% c(2015:2017)) %>%
   gather(Genre, GValid, G_Action:G_Western) %>% 
   filter(GValid == 1) %>% 
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
   ggplot(aes(y=totBudget, x=as.factor(Genre))) +
   geom_boxplot() +
   scale_y_log10(labels = scales::dollar, breaks=budgetBreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) +
+  labs(
+    x = "Genre",
+    y = "Budget",
+    title = "Relationship between Genre and Box Office Sales (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) 
+
+
+
+
 
 
 mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
-  filter(!is.na(Budget)) %>%
+  filter(!is.na(Budget)) %>% 
   gather(Genre, GValid, G_Action:G_Western) %>% 
   filter(GValid == 1) %>% 
+  mutate(Sales_Exceeds_Budget = Sales > Budget) %>%
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
   ggplot(aes(y=Sales, x=Budget)) +
-  #theme_minimal() + 
-  geom_point(alpha=0.5) + 
+  theme_bw() + 
+  geom_point(alpha=0.5, aes(color=Sales_Exceeds_Budget)) + 
   geom_abline(intercept = 0, colour="red") +
-  geom_abline(intercept = 0, slope=1.66, colour="green") +
-  geom_smooth(method="lm", se=TRUE) +
-  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks, limits=c(10000, 1000000000)) +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks, limits=c(10000, 1000000000)) +
+  geom_abline(intercept = 0, slope=1.66, colour="#0FC3C7") +
+  geom_smooth(method="lm", se=TRUE, colour="gray95") +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks2) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  coord_cartesian(ylim=c(10000, 1100000000), xlim=c(10000,1100000000)) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-  facet_wrap(~Genre)
+  facet_wrap(~Genre) +
+  labs(
+    x = "Movie Budget",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales by Genre (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  )
 
 
 
@@ -1209,12 +1333,26 @@ mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   filter(!is.na(Theatres)) %>%
   ggplot(aes(y=Sales, x=Theatres)) +
-  theme_minimal() +
   geom_jitter(alpha=0.5, width=0.5) + 
   geom_smooth(method="lm", se=TRUE) +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
   scale_x_log10(labels = scales::comma, breaks=tbreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  coord_cartesian(ylim=c(10, 1100000000), xlim=c(1,100000)) +
+  labs(
+    x = "Theatres Screened",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  )
 
 
 #check wide release
@@ -1604,6 +1742,7 @@ rmse(train$pred, log(train$Sales))
 #0.6651602
 
 sd(log(train$Sales))
+#2.794472
 
 
 train %>%
@@ -1626,6 +1765,10 @@ rmse(test$pred, log(test$Sales))
 test.rho = cor(test$pred, log(test$Sales))
 test.rho2 = test.rho^2
 test.rho2
+
+sd(log(test$Sales))
+#2.615329
+
 
 test %>%
   ggplot(aes(x=pred, y=log(Sales))) +
@@ -1667,6 +1810,9 @@ cvtrain.rho2
 #0.8930827
 
 
+sd(log(cvtrain$Sales))
+#2.879306
+
 
 #####################################################################################
 #  --------------MODEL 2
@@ -1689,7 +1835,11 @@ plot(movie.mod2)
 
 train2$pred = predict(movie.mod2 , newdata=train2)
 rmse(train2$pred, log(train2$Sales))
-#0.8392449
+#0.7911754
+
+rmsle(train2$pred, log(train2$Sales))
+
+
 
 sd(log(train2$Sales))
 #3.256241
