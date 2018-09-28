@@ -226,5 +226,20 @@ moviesbyTitle = getdf %>%
 write.csv(moviesbyTitle, "MoviesByTitle.csv", row.names = FALSE)
 
 
+options(scipen=999)
+
+aggmovies = read.csv("MoviesByTitle.csv")
+
+summary(aggmovies)
+
+str(aggmovies)
+
+summary(as.integer(aggmovies$WeeksOn))
 
 
+
+md = read.csv("MovieRatingsFull.csv")
+
+summary(md)
+
+View(md)

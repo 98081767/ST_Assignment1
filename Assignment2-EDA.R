@@ -2,43 +2,43 @@
 # Assignment 2 - EDA
 #--------------------------------------------
 
-install.packages("dplyr")
+#install.packages("dplyr")
 library(dplyr)
 
-install.packages("magrittr")
+#install.packages("magrittr")
 library(magrittr)
 
-install.packages("lubridate")
+#install.packages("lubridate")
 library(lubridate)
 
-install.packages("tibble")
+#install.packages("tibble")
 library(tibble)
 
-install.packages("tidyr")
+#install.packages("tidyr")
 library(tidyr)
 
 
-install.packages("ggplot2")
+#install.packages("ggplot2")
 library(ggplot2)
 
-install.packages("naniar")
+#install.packages("naniar")
 library(naniar)
 
-install.packages("purrr")
+#install.packages("purrr")
 library(purrr)
 
-install.packages("Amelia")
+#install.packages("Amelia")
 library(Amelia)
 
 
-install.packages("plotly")
+#install.packages("plotly")
 library(plotly)
 
-install.packages("Metrics")
+#install.packages("Metrics")
 library(Metrics)
 
 
-install.packages("stringr")
+#install.packages("stringr")
 library(stringr)
 
 
@@ -131,10 +131,12 @@ write.csv(cdata2, "MovieClean2.csv")
 #----------------START EDA HERE---------------------------
 
 
+
 mclean = read.csv("MovieClean2.csv", stringsAsFactors = FALSE)
 
 
 mclean2 = mclean %>%
+  mutate(Wide_Release = totTheatreCount >= 2000) %>%
   rename(
     ID = X.1,
     Theatres = totTheatreCount, 
@@ -147,7 +149,6 @@ mclean2 = mclean %>%
     RottenTomatoes_Rating = RTRating,
     Metacritic_Rating = Metacritic
   ) 
-
 
 
 
@@ -289,6 +290,46 @@ mclean2 %>%
   facet_wrap(~Year) + 
   labs(y="# Movies")
 #NOTES: There are two peaks for grossing films, peak around $50,000 and $5M
+
+
+
+#wide release vs non wide release movies
+
+WideMovies = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(Wide_Release == TRUE)
+
+NarrowMovies = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(Wide_Release == FALSE)
+
+
+  options(scipen=999)
+  summary(WideMovies$Sales)
+  summary(NarrowMovies$Sales)
+  
+
+
+WideReleaseNames = c('TRUE' = "Wide Release", 'FALSE' = "Narrow Release")
+
+mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  #mutate(Wide = Theatres >= 2000) %>%
+  ggplot(aes(x=Sales)) +
+  geom_histogram() +
+  theme_bw() +
+  annotate("rect", xmin=16375, xmax=398350, ymin=0, ymax=Inf, fill="blue", alpha=0.1) +
+  annotate("rect", xmin=15735000, xmax=75900538, ymin=0, ymax=Inf, fill="green", alpha=0.1) +
+  scale_x_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  facet_wrap(~Wide_Release + Year, labeller = labeller(Wide_Release = as_labeller(WideReleaseNames))) + 
+  labs(y="# Movies")
+
+
+
+
+
+
 
 
 mclean2 %>%
@@ -493,9 +534,77 @@ mclean2 %>%
       plot.caption = element_text(color = "gray30"),
       plot.background = element_rect(fill = "gray95"),
       plot.margin = unit(c(5, 10, 5, 10), units = "mm")
-    )
+    ) 
     
   
+
+
+WideMovies %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(Budget)) %>%
+  mutate(Sales_Exceeds_Budget = Sales > Budget) %>%
+  mutate(leverage = ID %in% outl) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  theme_bw(base_family = "Arial") +  
+  geom_jitter(alpha=0.5, aes(color=Sales_Exceeds_Budget)) + 
+  geom_text(nudge_y=-0.1, aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="#0FC3C7") +
+  geom_smooth(method="lm", se=TRUE, colour="gray95") +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks2) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  coord_cartesian(ylim=c(10000, 1100000000), xlim=c(10000,1100000000)) +
+  scale_color_manual(values=c("#808080", "#0FC3C7")) +
+  #expand_limits(x=c(0, 1000000000), y=c(0, 1000000000)) +
+  labs(
+    x = "Movie Budget",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales for Wide Release Movies (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) 
+
+
+NarrowMovies %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(Budget)) %>%
+  mutate(Sales_Exceeds_Budget = Sales > Budget) %>%
+  mutate(leverage = ID %in% outl) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  theme_bw(base_family = "Arial") +  
+  geom_jitter(alpha=0.5, aes(color=Sales_Exceeds_Budget)) + 
+  geom_text(nudge_y=-0.1, aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="#0FC3C7") +
+  geom_smooth(method="lm", se=TRUE, colour="gray95") +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks2) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  coord_cartesian(ylim=c(10000, 1100000000), xlim=c(10000,1100000000)) +
+  scale_color_manual(values=c("#808080", "#0FC3C7")) +
+  #expand_limits(x=c(0, 1000000000), y=c(0, 1000000000)) +
+  labs(
+    x = "Movie Budget",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales for Narrow Release Movies (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) 
+
+
 
 
 
@@ -549,14 +658,33 @@ mclean2 %>%
   filter(Studio %in% studioWRec) %>%
   ggplot(aes(y=Sales, x=Budget)) +
   geom_point() + 
-  #theme_minimal() +
+  theme_bw() +
   geom_abline(intercept = 0, colour="red") +
-  geom_abline(intercept = 0, slope=1.66, colour="green") +
-  geom_smooth(method="lm", se=TRUE) +
-  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-  facet_wrap(~ Studio)
+  geom_abline(intercept = 0, slope=1.66, colour="#0FC3C7") +
+  geom_smooth(method="lm", se=TRUE, colour="gray95") +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks2) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  coord_cartesian(ylim=c(10000, 1100000000), xlim=c(10000,1100000000)) +
+  scale_color_manual(values=c("#808080", "#0FC3C7")) +
+  facet_wrap(~ Studio)+
+  labs(
+    x = "Movie Budget",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales by Studio (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) 
+
+
+
+
 #- graph shows that some have a negative correlation between budget and sales. 
 
 
@@ -809,6 +937,20 @@ mclean2 %>%
   geom_histogram(binwidth = 2) +
   facet_wrap(~Year)
 
+#with wide release
+mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(x=IMDB_Rating)) +
+  geom_histogram(binwidth = 2) +
+  facet_wrap(~Year + Wide_Release)
+
+
+mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(y=IMDB_Rating, x=as.factor(Year))) +
+  geom_boxplot() +
+  facet_wrap(~Wide_Release)
+
 
 mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
@@ -842,8 +984,28 @@ mclean2 %>%
   ggplot(aes(y=Sales, x=IMDB_Rating)) +
   geom_jitter(alpha=0.5) + 
   geom_smooth(method="lm", se=TRUE) +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  scale_color_manual(values=c("#808080", "#0FC3C7")) +
+  labs(
+    x = "IMDB Rating",
+    y = "Box office Sales",
+    title = "Relationship between IMDB Ratings and Box Office Sales (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  ) 
+
+
+
+
+
 
 
 #add awards as a facet.
@@ -1151,8 +1313,27 @@ mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   gather(Genre, GValid, G_Action:G_Western) %>% 
   filter(GValid == 1) %>% 
+  mutate(Genre = str_replace(Genre, "G_", "")) %>% 
   ggplot(aes(x=Genre)) +
     geom_bar() + 
+    theme_bw() + 
+    theme(
+      text = element_text(family = "Arial", color = "gray25"),
+      axis.text.x = element_text(angle = 60, hjust = 1),
+      plot.subtitle = element_text(size = 12),
+      plot.caption = element_text(color = "gray30"),
+      plot.background = element_rect(fill = "gray95"),
+      plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+    ) +
+    labs(
+      x = "Genre",
+      y = "# Movies",
+      title = "Number of movies by Genere (2015-2017)",
+      caption = "Data source: IMDb 2018"
+    ) 
+  
+  
+  
     theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
     labs(y="# movies")
 
@@ -1359,6 +1540,32 @@ mclean2 %>%
 mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   filter(!is.na(Theatres)) %>%
+  ggplot(aes(y=Sales, x=Theatres, color=Wide_Release)) +
+  geom_jitter(alpha=0.5, width=0.5) + 
+  geom_smooth(method="lm", se=TRUE) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
+  scale_x_log10(labels = scales::comma, breaks=tbreaks) +
+  coord_cartesian(ylim=c(10, 1100000000), xlim=c(1,100000)) +
+  labs(
+    x = "Theatres Screened",
+    y = "Box office Sales",
+    title = "Relationship between Budget and Box Office Sales (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  )
+
+
+mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(Theatres)) %>%
   mutate(wide = Theatres >= 600) %>%
   filter(wide == TRUE) %>%
   summarise(corr = cor(Sales, Theatres, use="complete.obs"))
@@ -1379,15 +1586,30 @@ mclean2 %>%
   filter(Year %in% c(2015:2017)) %>%
   filter(!is.na(Theatres)) %>%
   filter(Studio %in% studioWRec) %>%
-  mutate(wide = Theatres >= 600) %>%
+  mutate(wide = Theatres >= 2000) %>%
   ggplot(aes(y=Sales, x=Theatres, color=wide)) +
-  #theme_minimal() + 
+  theme_bw() + 
   geom_jitter(alpha=0.5, width=0.5) + 
   geom_smooth(method="lm", se=TRUE) +
-  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  facet_wrap(~Studio) + 
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks2) +
   scale_x_log10(labels = scales::comma, breaks=tbreaks) +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-  facet_wrap(~Studio)
+  coord_cartesian(ylim=c(10, 1100000000), xlim=c(1,100000)) +
+  labs(
+    x = "Theatres Screened",
+    y = "Box office Sales",
+    title = "Relationship between Theatres and Box Office Sales by Wide/Narrow release (2015-2017)",
+    caption = "Data source: IMDb 2018"
+  ) + 
+  theme_bw() + 
+  theme(
+    text = element_text(family = "Arial", color = "gray25"),
+    axis.text.x = element_text(angle = 60, hjust = 1),
+    plot.subtitle = element_text(size = 12),
+    plot.caption = element_text(color = "gray30"),
+    plot.background = element_rect(fill = "gray95"),
+    plot.margin = unit(c(5, 10, 5, 10), units = "mm")
+  )
 
 
 
@@ -1705,6 +1927,11 @@ summary(movie.mod)
 
 plot(movie.mod)
 
+
+#check normality of residuals - if normal then don't need to worry about bimodal nature
+hist(residuals(movie.mod))
+
+
 #check outliers:
 out1 = train %>%
   filter(row_number(ID) %in% c(614, 437, 271, 3, 110)) %>% 
@@ -1815,6 +2042,257 @@ sd(log(cvtrain$Sales))
 
 
 #####################################################################################
+#  --------------MODEL 1 (Wide)
+######################################################################################
+
+trainW = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(IMDB_Rating)) %>% 
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+movie.form = as.formula("log(Sales) ~ log(Budget) + log(Theatres) + IMDB_Rating")
+
+movie.mod = lm(movie.form, data=trainW)
+summary(movie.mod)
+
+plot(movie.mod)
+
+#check outliers:
+outl = trainW %>%
+  filter(row_number(ID) %in% c(32, 301, 138)) %>% 
+  select(ID)
+
+
+#outl = rbind(out1, out2, out3)
+
+
+trainW %>%
+  mutate(leverage = ID %in% outl$ID) %>% 
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+trainW$pred = predict(movie.mod , newdata=trainW)
+rmse(trainW$pred, log(trainW$Sales))
+#0.426331
+
+sd(log(trainW$Sales))
+#1.213393
+
+
+trainW %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+
+testW = mclean2 %>%
+  filter(Year %in% c(2018)) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+
+testW$pred = predict(movie.mod, newdata=testW)
+rmse(testW$pred, log(testW$Sales))
+#0.389188
+
+test.rho = cor(testW$pred, log(testW$Sales))
+test.rho2 = test.rho^2
+test.rho2
+#0.8876661
+
+
+sd(log(testW$Sales))
+#1.100358
+
+
+testW %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+#install.packages("vtreat")
+library(vtreat)
+
+
+cvtrainW = mclean2 %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+
+splitPlan = kWayCrossValidation(nRows=nrow(cvtrainW), nSplits = 3, NULL, NULL)
+
+k = 3 # Number of folds
+cvtrainW$pred.cv = 0 
+for(i in 1:k) {
+  split = splitPlan[[i]]
+  model.cv = lm(movie.form, data = cvtrainW[split$train,])
+  cvtrainW$pred.cv[split$app] = predict(model.cv, newdata = cvtrainW[split$app,])
+}
+
+cvtrainW %>%
+  ggplot(aes(x=pred.cv, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+rmse(cvtrainW$pred.cv, log(cvtrainW$Sales))
+#0.5286614
+cvtrain.rho = cor(cvtrainW$pred.cv, log(cvtrainW$Sales))
+cvtrain.rho2 = cvtrain.rho^2
+cvtrain.rho2
+#0.8004953
+
+
+sd(log(cvtrainW$Sales))
+#1.183996
+
+
+#####################################################################################
+#  --------------MODEL 1 (Narrow)
+######################################################################################
+
+trainN = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(IMDB_Rating)) %>% 
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+movie.form = as.formula("log(Sales) ~ log(Budget) + log(Theatres) + IMDB_Rating")
+
+movie.mod = lm(movie.form, data=trainN)
+summary(movie.mod)
+
+plot(movie.mod)
+
+#check outliers:
+outl = trainW %>%
+  filter(row_number(ID) %in% c(235)) %>% 
+  select(ID)
+
+
+#outl = rbind(out1, out2, out3)
+
+
+trainN %>%
+  mutate(leverage = ID %in% outl$ID) %>% 
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+trainN$pred = predict(movie.mod , newdata=trainN)
+rmse(trainN$pred, log(trainN$Sales))
+#0.8214049
+
+sd(log(trainN$Sales))
+#2.108226
+
+
+trainN %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+
+testN = mclean2 %>%
+  filter(Year %in% c(2018)) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+
+testN$pred = predict(movie.mod, newdata=testN)
+rmse(testN$pred, log(testN$Sales))
+#0.8107572
+
+test.rho = cor(testN$pred, log(testN$Sales))
+test.rho2 = test.rho^2
+test.rho2
+#0.8639363
+
+
+sd(log(testN$Sales))
+#2.142279
+
+
+testN %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+#install.packages("vtreat")
+library(vtreat)
+
+
+cvtrainN = mclean2 %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+
+splitPlan = kWayCrossValidation(nRows=nrow(cvtrainN), nSplits = 3, NULL, NULL)
+
+k = 3 # Number of folds
+cvtrainN$pred.cv = 0 
+for(i in 1:k) {
+  split = splitPlan[[i]]
+  model.cv = lm(movie.form, data = cvtrainN[split$train,])
+  cvtrainN$pred.cv[split$app] = predict(model.cv, newdata = cvtrainN[split$app,])
+}
+
+cvtrainN %>%
+  ggplot(aes(x=pred.cv, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+rmse(cvtrainN$pred.cv, log(cvtrainN$Sales))
+#1.29887
+cvtrain.rho = cor(cvtrainN$pred.cv, log(cvtrainN$Sales))
+cvtrain.rho2 = cvtrain.rho^2
+cvtrain.rho2
+#0.7260248
+
+
+sd(log(cvtrainN$Sales))
+#2.484954
+
+
+
+#####################################################################################
 #  --------------MODEL 2
 ######################################################################################
 
@@ -1829,6 +2307,10 @@ movie.form2 = as.formula("log(Sales) ~ log(Theatres) + IMDB_Rating")
 
 movie.mod2 = lm(movie.form2, data=train2)
 summary(movie.mod2)
+
+#check normality of residuals - if normal then don't need to worry about bimodal nature
+hist(residuals(movie.mod2))
+
 
 plot(movie.mod2)
 
@@ -1912,6 +2394,258 @@ sd(log(cvtrain2$Sales))
 sd(log(test2$Sales))
 #3.225612
 
+#####################################################################################
+#  --------------MODEL 2 (Wide)
+######################################################################################
+
+trainW = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(IMDB_Rating)) %>% 
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+movie.form = as.formula("log(Sales) ~ log(Theatres) + IMDB_Rating")
+
+movie.mod = lm(movie.form, data=trainW)
+summary(movie.mod)
+
+plot(movie.mod)
+
+#check outliers:
+outl = trainW %>%
+  filter(row_number(ID) %in% c(231)) %>%
+  select(ID)
+
+
+#outl = rbind(out1, out2, out3)
+
+
+trainW %>%
+  mutate(leverage = ID %in% outl$ID) %>% 
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+trainW$pred = predict(movie.mod , newdata=trainW)
+rmse(trainW$pred, log(trainW$Sales))
+#0.4291287
+
+sd(log(trainW$Sales))
+#1.213393
+
+
+trainW %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+
+testW = mclean2 %>%
+  filter(Year %in% c(2018)) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+
+testW$pred = predict(movie.mod, newdata=testW)
+rmse(testW$pred, log(testW$Sales))
+#0.3945607
+
+test.rho = cor(testW$pred, log(testW$Sales))
+test.rho2 = test.rho^2
+test.rho2
+#0.8838742
+
+
+sd(log(testW$Sales))
+#1.100358
+
+
+testW %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+#install.packages("vtreat")
+library(vtreat)
+
+
+cvtrainW = mclean2 %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == TRUE)
+
+
+splitPlan = kWayCrossValidation(nRows=nrow(cvtrainW), nSplits = 3, NULL, NULL)
+
+k = 3 # Number of folds
+cvtrainW$pred.cv = 0 
+for(i in 1:k) {
+  split = splitPlan[[i]]
+  model.cv = lm(movie.form, data = cvtrainW[split$train,])
+  cvtrainW$pred.cv[split$app] = predict(model.cv, newdata = cvtrainW[split$app,])
+}
+
+cvtrainW %>%
+  ggplot(aes(x=pred.cv, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+rmse(cvtrainW$pred.cv, log(cvtrainW$Sales))
+#0.526748
+cvtrain.rho = cor(cvtrainW$pred.cv, log(cvtrainW$Sales))
+cvtrain.rho2 = cvtrain.rho^2
+cvtrain.rho2
+#0.8017098
+
+
+sd(log(cvtrainW$Sales))
+#1.183996
+
+
+#####################################################################################
+#  --------------MODEL 2 (Narrow)
+######################################################################################
+
+trainN = mclean2 %>%
+  filter(Year %in% c(2015:2017)) %>%
+  filter(!is.na(IMDB_Rating)) %>% 
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+movie.form = as.formula("log(Sales) ~ log(Theatres) + IMDB_Rating")
+
+movie.mod = lm(movie.form, data=trainN)
+summary(movie.mod)
+
+plot(movie.mod)
+
+#check outliers:
+outl = trainW %>%
+  filter(row_number(ID) %in% c(235)) %>% 
+  select(ID)
+
+
+#outl = rbind(out1, out2, out3)
+
+
+trainN %>%
+  mutate(leverage = ID %in% outl$ID) %>% 
+  filter(Year %in% c(2015:2017)) %>%
+  ggplot(aes(y=Sales, x=Budget)) +
+  geom_point(alpha=0.5, aes(color=leverage)) + 
+  geom_text(aes(label=ifelse(leverage, Title, ""))) +
+  geom_abline(intercept = 0, colour="red") +
+  geom_abline(intercept = 0, slope=1.66, colour="green") +
+  geom_smooth(method="lm", se=TRUE) +
+  scale_x_log10(labels = scales::dollar, breaks=budgetBreaks) +
+  scale_y_log10(labels = scales::dollar, breaks=salesBreaks) +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+trainN$pred = predict(movie.mod , newdata=trainN)
+rmse(trainN$pred, log(trainN$Sales))
+#0.8297497
+
+sd(log(trainN$Sales))
+#2.108226
+
+
+trainN %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+
+testN = mclean2 %>%
+  filter(Year %in% c(2018)) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+
+testN$pred = predict(movie.mod, newdata=testN)
+rmse(testN$pred, log(testN$Sales))
+#0.8303592
+
+test.rho = cor(testN$pred, log(testN$Sales))
+test.rho2 = test.rho^2
+test.rho2
+#0.8600499
+
+
+sd(log(testN$Sales))
+#2.142279
+
+
+testN %>%
+  ggplot(aes(x=pred, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+
+#install.packages("vtreat")
+library(vtreat)
+
+
+cvtrainN = mclean2 %>%
+  filter(Theatres !=0) %>%
+  filter(!is.na(IMDB_Rating)) %>%
+  filter(!is.na(Sales)) %>%
+  filter(!is.na(Budget)) %>%
+  filter(Wide_Release == FALSE)
+
+
+splitPlan = kWayCrossValidation(nRows=nrow(cvtrainN), nSplits = 3, NULL, NULL)
+
+k = 3 # Number of folds
+cvtrainN$pred.cv = 0 
+for(i in 1:k) {
+  split = splitPlan[[i]]
+  model.cv = lm(movie.form, data = cvtrainN[split$train,])
+  cvtrainN$pred.cv[split$app] = predict(model.cv, newdata = cvtrainN[split$app,])
+}
+
+cvtrainN %>%
+  ggplot(aes(x=pred.cv, y=log(Sales))) +
+  geom_point() +
+  geom_abline(color="red")
+
+rmse(cvtrainN$pred.cv, log(cvtrainN$Sales))
+#1.29887
+cvtrain.rho = cor(cvtrainN$pred.cv, log(cvtrainN$Sales))
+cvtrain.rho2 = cvtrain.rho^2
+cvtrain.rho2
+#0.7058266
+
+
+sd(log(cvtrainN$Sales))
+#2.484954
+
+#---------------------------------------------------------------------------
+#Validation Checks
+#---------------------------------------------------------------------------
 
 #check collinearity
 cvtrain %>%
